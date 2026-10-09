@@ -1,0 +1,143 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-person
+      author: opencode-tutorial
+      changes:
+        - createTable:
+            tableName: person
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: surname
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 002-create-student-group
+      author: opencode-tutorial
+      # The table is named student_group (not group) because GROUP is a reserved
+      # SQL keyword. See AGENTS.md.
+      changes:
+        - createTable:
+            tableName: student_group
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 003-create-student
+      author: opencode-tutorial
+      changes:
+        - createTable:
+            tableName: student
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: person_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: student
+            baseColumnNames: person_id
+            referencedTableName: person
+            referencedColumnNames: id
+            constraintName: fk_student_person
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 004-create-student-group-link
+      author: opencode-tutorial
+      # Junction table for the Student <-> Group many-to-many. Composite primary
+      # key guarantees a student cannot be enrolled twice in the same group.
+      changes:
+        - createTable:
+            tableName: student_group_link
+            columns:
+              - column:
+                  name: student_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: student_group_link
+            columnNames: student_id, group_id
+            constraintName: pk_student_group_link
+        - addForeignKeyConstraint:
+            baseTableName: student_group_link
+            baseColumnNames: student_id
+            referencedTableName: student
+            referencedColumnNames: id
+            constraintName: fk_link_student
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: student_group_link
+            baseColumnNames: group_id
+            referencedTableName: student_group
+            referencedColumnNames: id
+            constraintName: fk_link_group
+            onDelete: CASCADE

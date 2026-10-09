@@ -1,0 +1,117 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-seed-persons
+      author: opencode-tutorial
+      changes:
+        - insert:
+            tableName: person
+            columns:
+              - column: { name: name,    value: "Ada" }
+              - column: { name: surname, value: "Lovelace" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: person
+            columns:
+              - column: { name: name,    value: "Linus" }
+              - column: { name: surname, value: "Torvalds" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: person
+            columns:
+              - column: { name: name,    value: "Grace" }
+              - column: { name: surname, value: "Hopper" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: person
+            columns:
+              - column: { name: name,    value: "Alan" }
+              - column: { name: surname, value: "Turing" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 006-seed-groups
+      author: opencode-tutorial
+      changes:
+        - insert:
+            tableName: student_group
+            columns:
+              - column: { name: name, value: "Programación 1" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: student_group
+            columns:
+              - column: { name: name, value: "Bases de Datos" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: student_group
+            columns:
+              - column: { name: name, value: "Ingeniería del Software" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 007-seed-students
+      author: opencode-tutorial
+      changes:
+        # Ada -> Programación 1
+        - insert:
+            tableName: student
+            columns:
+              - column: { name: person_id, valueNumeric: 1 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 1 }
+              - column: { name: group_id,   valueNumeric: 1 }
+
+        # Linus -> Bases de Datos, Ingeniería del Software (covers the N:M case)
+        - insert:
+            tableName: student
+            columns:
+              - column: { name: person_id, valueNumeric: 2 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 2 }
+              - column: { name: group_id,   valueNumeric: 2 }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 2 }
+              - column: { name: group_id,   valueNumeric: 3 }
+
+        # Grace -> Programación 1, Bases de Datos
+        - insert:
+            tableName: student
+            columns:
+              - column: { name: person_id, valueNumeric: 3 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 3 }
+              - column: { name: group_id,   valueNumeric: 1 }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 3 }
+              - column: { name: group_id,   valueNumeric: 2 }
+
+        # Alan -> no groups enrolled (covers the empty-group case)
+        - insert:
+            tableName: student
+            columns:
+              - column: { name: person_id, valueNumeric: 4 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }

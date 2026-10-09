@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "hexagonal-architecture": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/hexagonal-architecture/SKILL.md",
+      "computedHash": "9bcc7b90143ab607eb6dbac67df028c9d8c7303e787395da5b2ef311f52e55eb"
+    },
+    "java-springboot": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/java-springboot/SKILL.md",
+      "computedHash": "f1b9c6b1277178fc33e5a612761c1cd1cf6ab5f946d05d69d52026d142c0a0c1"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
+    }
+  }
+}

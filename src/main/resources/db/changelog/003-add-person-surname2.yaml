@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-person-surname2
+      author: opencode-tutorial
+      # Adds the optional second-surname column to the person table.
+      # The column is nullable on purpose: not every person has a second surname
+      # (mirrors the new optional SecondSurname value object in the domain).
+      # The length (100) matches the existing `surname` column for consistency.
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: surname2
+                  type: varchar(100)
+                  constraints:
+                    nullable: true

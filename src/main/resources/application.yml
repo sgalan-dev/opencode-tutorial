@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: opencode-tutorial
+  datasource:
+    url: jdbc:h2:mem:opencode_tutorial
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-title: opencode-tutorial API
+  api-docs:
+    path: /v3/api-docs
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.hibernate.SQL: debug
