@@ -13,7 +13,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>opencode-tutorial</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>opencode-tutorial</name>
     <description>Hexagonal Spring Boot API tutorial</description>
 
