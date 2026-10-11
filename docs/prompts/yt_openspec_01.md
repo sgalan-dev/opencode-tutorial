@@ -22,7 +22,10 @@ Hay otras entidades que requieren vinculación con el centro educativo, como por
 ## Objetivo
 Implementar los diferentes controladores y endpoints en la aplicación.
 
-## Campos de las nuevas entidades
+## Consideraciones
+Recuerda que existen scripts de liquibase que versionan el modelo de datos. Es imprescindible mantenerlos actualizados y coherentes con el desarrollo. Añade datos de ejemplo.
+
+## Modelo de datos
 
 ### Curso
 
