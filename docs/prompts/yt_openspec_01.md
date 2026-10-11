@@ -9,13 +9,15 @@ version: 1.0
 ## Descripción necesidad funcional
 Necesitamos añadir tres entidades nuevas en la aplicación: Curso (Course), Edición (Edition), Centro Educativo (Center). Actualmente, en la aplicación existen las entidades persona, estudiante y grupo.
 
-El grupo es la entidad que representa a un conjunto de estudiantes que están siendo formados en un curso. Por lo tanto, un curso puede tener N grupos.
-
 Un curso pertenece a una edición. Una edición representa una versión de ese curso. Por ejemplo: "Edición 2026-2027" representaría esa versión del curso concreto para el periodo lectivo 2026-2027. Pueden haber N ediciones de un mismo curso a modo de histórico.
+
+El grupo es la entidad que representa a un conjunto de estudiantes que están siendo formados en un curso. Pueden haber N grupos de un mismo curso. Por lo tanto, un curso puede tener N grupos.
 
 Por lo tanto, será necesario hacer una vinculación entre el curso, la edición y el grupo.
 
 El curso, pertenece a un centro educativo.
+
+Hay otras entidades que requieren vinculación con el centro educativo, como por ejemplo los estudiantes. Revisa qué entidades existentes deben estar vinculadas.
 
 ## Objetivo
 Implementar los diferentes controladores y endpoints en la aplicación.
@@ -28,6 +30,7 @@ Implementar los diferentes controladores y endpoints en la aplicación.
 |-----|-----------|
 |id|numérico autoincremental|
 |name|alfanumérico que se corresponde con el nombre del curso|
+|id_center|numérico que relaciona al curso con el centro educativo|
 
 ### Edición
 |campo|descripcion|
