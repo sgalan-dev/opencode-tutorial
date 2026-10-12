@@ -7,15 +7,7 @@ version: 1.0
 ---
 
 ## Descripción necesidad funcional
-Necesitamos añadir dos entidades nuevas en la aplicación: Curso (Course), Centro Educativo (Center). Actualmente, en la aplicación existen las entidades persona, estudiante y grupo.
-
-El grupo es la entidad que representa a un conjunto de estudiantes que están siendo formados en un curso. Pueden haber N grupos de un mismo curso. Por lo tanto, un curso puede tener N grupos.
-
-Por lo tanto, será necesario hacer una vinculación entre el curso y el grupo.
-
-El curso, pertenece a un centro educativo.
-
-Hay otras entidades que requieren vinculación con el centro educativo, como por ejemplo los estudiantes. Revisa qué entidades existentes deben estar vinculadas.
+Necesitamos añadir dos entidades nuevas en la aplicación: Curso (Course), Centro Educativo (Center).
 
 La jerarquía de entidades debe quedar reorganizada así:
 * Centros
@@ -24,9 +16,15 @@ La jerarquía de entidades debe quedar reorganizada así:
     * Estudiantes
 * Personas
 
+Sobre la jerarquía:
+1. El centro es la entidad principal de la que cuelgan el resto de entidades
+2. Todos los cursos pertenecen a un centro educativo.
+3. Todos los grupos pertenecen a curso, que a su vez pertenece a un centro educativo.
+4. Los estudiantes pertenecen a un centro. Pueden estar asignados a N grupos, pero no a mas de un grupo del mismo curso. 
+5. Las personas son totalmente independientes del centro educativo. Son entidades únicas.
 
 ## Objetivo
-1. Reorganizar los endpoints para que sigan una jerarquía coherente a nivel de urls.
+1. Reorganizar los endpoints para que sigan una jerarquía coherente a nivel de urls y tal y como se detalla en la necesidad funcional.
 2. Implementar los diferentes controladores y endpoints en la aplicación para las nuevas entidades curso y centro educativo.
 
 ## Consideraciones
