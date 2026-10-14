@@ -23,6 +23,11 @@ Sobre la jerarquía:
 4. Los estudiantes pertenecen a un centro. Pueden estar asignados a N grupos, pero no a mas de un grupo del mismo curso. 
 5. Las personas son totalmente independientes del centro educativo. Son entidades únicas.
 
+Adicionalmente de los cruds que nos permitan gestionar cada entidad, necesitamos:
+1. Endpoint para matricular/desmatricular a un estudiante a un grupo.
+2. Endpoint que nos permita consultar los estudiantes matriculados a un grupo.
+3. Endpoint que nos permita ver los grupos existentes para un curso concreto.
+
 ## Objetivo
 1. Reorganizar los endpoints para que sigan una jerarquía coherente a nivel de urls y tal y como se detalla en la necesidad funcional.
 2. Implementar los diferentes controladores y endpoints en la aplicación para las nuevas entidades curso y centro educativo.
