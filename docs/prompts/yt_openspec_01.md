@@ -40,7 +40,7 @@ Adicionalmente de los cruds que nos permitan gestionar cada entidad, necesitamos
 1. Endpoint para matricular/desmatricular a un estudiante a un grupo. Estas operaciones serán POST y DELETE sobre la url /api/v1/centers/{centerId}/courses/{courseId}/groups/students/{studentId}
 2. Endpoint para ver los estudiantes matriculados a un grupo. Será una operación GET sobre la url /api/v1/centers/{centerId}/courses/{courseId}/groups/students/
 3. Endpoint con el detalle completo de un grupo, donde veremos los datos del curso, del grupo y estudiantes matriculados con sus datos personales sobre /api/v1/centers/{centerId}/courses/{courseId}/groups/{groupId}/students/detail
-4. Endpoint con el detalle completo de un estudiante en /api/v1/centers/{centerId}/students/{studentId}/detail, donde veremos los datos del estudiante, los detalles del centro al que pertenece, los detalles de su persona asociada y el detalle de los grupos y cursos a los que pertenece.
+4. Endpoint con el detalle completo de un estudiante en /api/v1/centers/{centerId}/students/{studentId}/detail, donde veremos los datos del estudiante, los detalles del centro al que pertenece, los detalles de su persona asociada y el detalle de los grupos y cursos a los que pertenece. Este endpoint debe pertenecer al grupo de operaciones de estudiantes o api de estudiantes.
 
 ## Objetivo
 1. Reorganizar los endpoints para que sigan una jerarquía coherente a nivel de urls y tal y como se detalla en la necesidad funcional.
