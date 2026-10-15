@@ -9,6 +9,7 @@ version: 1.0
 ## Descripción necesidad funcional
 Necesitamos añadir dos entidades nuevas en la aplicación: Curso (Course), Centro Educativo (Center).
 
+### Jerarquía de entidades y URLs
 La jerarquía de entidades debe quedar reorganizada así:
 * Centros
     * Cursos
@@ -16,21 +17,30 @@ La jerarquía de entidades debe quedar reorganizada así:
     * Estudiantes
 * Personas
 
-Sobre la jerarquía:
+Descripción de la jerarquía:
 1. El centro es la entidad principal de la que cuelgan el resto de entidades
 2. Todos los cursos pertenecen a un centro educativo.
 3. Todos los grupos pertenecen a curso, que a su vez pertenece a un centro educativo.
 4. Los estudiantes pertenecen a un centro. Pueden estar asignados a N grupos, pero no a mas de un grupo del mismo curso. 
-5. Las personas son totalmente independientes del centro educativo. Son entidades únicas.
+5. Las personas son totalmente independientes del centro educativo. Son entidades únicas y globales.
+
+
+A continuación pongo ejemplos de esta jerarquía de urls en base a su entidad:
+|URL|descripción|
+|-|-|
+|/api/v1/centers/|url base para centros|
+|/api/v1/persons/|url base para personas|
+|/api/v1/centers/{centerId}/students/|url base para estudiantes|
+|/api/v1/centers/{centerId}/courses/|url base para cursos|
+|/api/v1/centers/{centerId}/courses/{courseId}/groups/|url base para grupos|
+
+### Operaciones adicionales
 
 Adicionalmente de los cruds que nos permitan gestionar cada entidad, necesitamos:
-1. Endpoint para matricular/desmatricular a un estudiante a un grupo.
-2. Endpoint que nos permita consultar los estudiantes matriculados a un grupo.
-3. Endpoint que nos permita ver los grupos existentes para un curso concreto.
-4. Para TODOS los endpoints de consulta que devuelvan una relación de ids, añade un endpoint `/detail` que incluya los detalles de las entidades relacionadas. Por ejemplo, el endpoint de consulta de estudiantes devuelve una relación de ids. Este nuevo endpoint de detalle devolverá el detalle completo del estudiante:
-    * si tiene datos de centro, devolverá todos los campos del centro.
-    * si tiene persona, devolverá todos los datos de la persona como el nombre, apellidos, etc.
-    * así para todas las entidades asociadas.
+1. Endpoint para matricular/desmatricular a un estudiante a un grupo. Estas operaciones serán POST y DELETE sobre la url /api/v1/centers/{centerId}/courses/{courseId}/groups/students/{studentId}
+2. Endpoint para ver los estudiantes matriculados a un grupo. Será una operación GET sobre la url /api/v1/centers/{centerId}/courses/{courseId}/groups/students/
+3. Endpoint con el detalle completo de un grupo, donde veremos los datos del curso, del grupo y estudiantes matriculados con sus datos personales sobre /api/v1/centers/{centerId}/courses/{courseId}/groups/{groupId}/students/detail
+4. Endpoint con el detalle completo de un estudiante en /api/v1/centers/{centerId}/students/{studentId}/detail, donde veremos los datos del estudiante, los detalles del centro al que pertenece, los detalles de su persona asociada y el detalle de los grupos y cursos a los que pertenece.
 
 ## Objetivo
 1. Reorganizar los endpoints para que sigan una jerarquía coherente a nivel de urls y tal y como se detalla en la necesidad funcional.
