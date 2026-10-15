@@ -27,7 +27,9 @@ Ya existe una asignación de estudiantes a grupos, puedes basarte en esta asigna
 Implementar los diferentes controladores y endpoints en la aplicación para gestionar cada una de las nuevas entidades.
 
 ## Consideraciones
-Recuerda que existen scripts de liquibase que versionan el modelo de datos. Es imprescindible mantenerlos actualizados y coherentes con el desarrollo. Añade datos de ejemplo
+Recuerda que existen scripts de liquibase que versionan el modelo de datos. Es imprescindible mantenerlos actualizados y coherentes con el desarrollo. Añade datos de ejemplo.
+
+Recuerda implementar los endpoints de `/detail` para la consultas detalladas si fuera necesario. 
 
 ## Modelo de datos
 
