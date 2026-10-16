@@ -27,7 +27,7 @@ La jerarquía de la nueva entidad debe quedar al siguiente nivel:
     * Profesores (nuevo)
 * Personas
 
-entidad:
+A continuación pongo ejemplos de esta jerarquía de urls en base a su entidad:
 |URL|descripción|
 |-|-|
 |/api/v1/centers/{centerId}/professors/|url base para profesores|

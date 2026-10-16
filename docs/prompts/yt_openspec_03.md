@@ -9,21 +9,33 @@ version: 1.0
 ## Descripción necesidad funcional
 Necesitamos crear un sistema de gestión de asignaturas (Subject). 
 
-Una asignatura es única y pertenece a un centro.
+Pertenece a un curso.
 
-Una asignatura está asignada a un curso. Las asignaturas pueden estar vinculadas o no a un curso, es decir, pueden estar huérfanas (pero siempre pertenecerán al centro). Una asignatura también puede estar vinculada a más de un curso.
+Una asignatura tiene asignada un profesor, que es quien imparte la materia de esa asignatura, pero no es obligatorio que tenga esa asignación. 
 
-Una asignatura tiene asignada un profesor, que es quien imparte la materia de esa asignatura, pero no es obligatorio que tenga esa asignación.
+Si una asignatura no tiene profesor, significa que la impartirá el tutor del grupo de ese curso, aunque esto se abordará en otro desarrollo.
 
 Debe haber un mecanismo (tabla) que nos relacione el curso con la asignatura y con el profesor que la imparte.
+
+### Jerarquía de entidades y URLs
+La jerarquía de entidades debe quedar reorganizada así:
+* Centros
+    * Cursos
+        * Grupos
+        * Asignaturas (nuevo)
+* Personas
+
+A continuación pongo ejemplos de esta jerarquía de urls en base a su entidad:
+
+|URL|descripción|
+|-|-|
+|/api/v1/centers/{centerId}/courses/{courseId}/subjects/|url base para grupos|
 
 ## Objetivo
 Implementar los diferentes controladores y endpoints en la aplicación para resolver esa necesidad funcional al completo.
 
 ## Consideraciones
 Recuerda que existen scripts de liquibase que versionan el modelo de datos. Es imprescindible mantenerlos actualizados y coherentes con el desarrollo. Añade datos de ejemplo.
-
-Recuerda implementar los endpoints de `/detail` para la consultas detalladas si fuera necesario. 
 
 ## Modelo de datos
 
