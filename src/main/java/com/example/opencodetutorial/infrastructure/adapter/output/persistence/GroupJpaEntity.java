@@ -19,6 +19,10 @@ import java.time.Instant;
  * <p>{@code courseId} is stored as a plain column instead of a {@code @ManyToOne}
  * association: the domain only ever needs the identifier, and keeping it scalar avoids
  * loading the course row when a group is read.
+ *
+ * <p>{@code tutorProfessorId} follows the same rule: it is the nullable scalar
+ * identifier of the professor that tutors the group, so listing the groups of a course
+ * never loads the teaching staff.
  */
 @Entity
 @Table(name = "student_group")
@@ -31,6 +35,9 @@ public class GroupJpaEntity {
 
     @Column(name = "course_id", nullable = false)
     private Long courseId;
+
+    @Column(name = "tutor_professor_id")
+    private Long tutorProfessorId;
 
     @Column(name = "name", nullable = false, length = 150)
     private String name;
@@ -55,6 +62,14 @@ public class GroupJpaEntity {
 
     public void setCourseId(Long courseId) {
         this.courseId = courseId;
+    }
+
+    public Long getTutorProfessorId() {
+        return tutorProfessorId;
+    }
+
+    public void setTutorProfessorId(Long tutorProfessorId) {
+        this.tutorProfessorId = tutorProfessorId;
     }
 
     public String getName() {

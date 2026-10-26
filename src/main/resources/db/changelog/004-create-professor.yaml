@@ -1,0 +1,96 @@
+databaseChangeLog:
+  # Incremental schema changes for the Professor aggregate and the group tutor.
+  # 001, 002 and 003 are left untouched: the rule from AGENTS.md is that schema
+  # changes land in new changesets, never by rewriting the existing ones.
+  #
+  # The table is named `professor` (not suffixed) because PROFESSOR is not a reserved
+  # SQL keyword, unlike GROUP, which is why the group table is `student_group`.
+
+  - changeSet:
+      id: 009-create-professor
+      author: opencode-tutorial
+      # A professor is the association of one person with one center: the person is a
+      # global identity, the professorship is per center. The same person may hold a
+      # professorship in several centers, but never two inside the same one, so the
+      # uniqueness is on the pair (person_id, center_id).
+      changes:
+        - createTable:
+            tableName: professor
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: person_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: center_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: professor
+            columnNames: person_id, center_id
+            constraintName: uk_professor_person_center
+        - addForeignKeyConstraint:
+            baseTableName: professor
+            baseColumnNames: person_id
+            referencedTableName: person
+            referencedColumnNames: id
+            constraintName: fk_professor_person
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: professor
+            baseColumnNames: center_id
+            referencedTableName: center
+            referencedColumnNames: id
+            constraintName: fk_professor_center
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 010-add-group-tutor-column
+      author: opencode-tutorial
+      # A group may have a tutor: a professor of the center that owns the group's
+      # course. The column is nullable because most groups have no tutor, and it is a
+      # scalar column (like course_id) instead of a JPA association: the domain only
+      # needs the identifier.
+      changes:
+        - addColumn:
+            tableName: student_group
+            columns:
+              - column:
+                  name: tutor_professor_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+
+  - changeSet:
+      id: 011-add-group-tutor-fk
+      author: opencode-tutorial
+      # The tutor reference is restricted: a professor that still tutors a group
+      # cannot be deleted, and the database refuses it as a safety net against races
+      # that slip past the application-level guard.
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: student_group
+            baseColumnNames: tutor_professor_id
+            referencedTableName: professor
+            referencedColumnNames: id
+            constraintName: fk_group_tutor_professor
+            onDelete: RESTRICT

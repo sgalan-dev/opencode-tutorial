@@ -7,13 +7,15 @@ import java.util.List;
 
 /**
  * Response payload for {@code GET .../groups/{groupId}/students/detail}: the group, its
- * course and every enrolled student with the personal data of the associated person.
+ * course, every enrolled student with the personal data of the associated person and,
+ * when the group has one, its tutor with the personal data of the person behind it.
  *
  * @param group    the requested group
  * @param course   the course that owns the group
  * @param students the enrolled students, empty when the group has none
+ * @param tutor    the tutor of the group, null when the group has none
  */
-@Schema(description = "Assembled view of a group: the group, its course and its enrolled students.")
+@Schema(description = "Assembled view of a group: the group, its course, its enrolled students and its tutor.")
 public record GroupDetailResponse(
 
         @Schema(description = "The requested group.")
@@ -23,7 +25,13 @@ public record GroupDetailResponse(
         CourseResponse course,
 
         @Schema(description = "Students enrolled in the group, with their personal data.")
-        List<EnrolledStudentResponse> students) {
+        List<EnrolledStudentResponse> students,
+
+        @Schema(description = "Tutor of the group, with the personal data of its person. Null when the group "
+                + "has no tutor.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true)
+        TutorResponse tutor) {
 
     /**
      * Adapts the application-layer read model into the REST payload.
@@ -37,6 +45,7 @@ public record GroupDetailResponse(
                 CourseResponse.from(view.course()),
                 view.students().stream()
                         .map(EnrolledStudentResponse::from)
-                        .toList());
+                        .toList(),
+                view.tutor() == null ? null : TutorResponse.from(view.tutor()));
     }
 }

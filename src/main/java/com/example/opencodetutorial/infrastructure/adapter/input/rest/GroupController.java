@@ -1,5 +1,6 @@
 package com.example.opencodetutorial.infrastructure.adapter.input.rest;
 
+import com.example.opencodetutorial.application.usecase.AssignTutorToGroupUseCase;
 import com.example.opencodetutorial.application.usecase.CreateGroupUseCase;
 import com.example.opencodetutorial.application.usecase.DeleteGroupUseCase;
 import com.example.opencodetutorial.application.usecase.DetachStudentFromGroupUseCase;
@@ -8,6 +9,7 @@ import com.example.opencodetutorial.application.usecase.GetGroupDetailUseCase;
 import com.example.opencodetutorial.application.usecase.GetGroupUseCase;
 import com.example.opencodetutorial.application.usecase.ListGroupsUseCase;
 import com.example.opencodetutorial.application.usecase.ListStudentsInGroupUseCase;
+import com.example.opencodetutorial.application.usecase.UnassignTutorFromGroupUseCase;
 import com.example.opencodetutorial.application.usecase.UpdateGroupUseCase;
 import com.example.opencodetutorial.domain.model.CenterId;
 import com.example.opencodetutorial.domain.model.CourseId;
@@ -18,6 +20,7 @@ import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupR
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupResponse;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.StudentResponse;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.GroupRequestMapper;
+import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.ProfessorRequestMapper;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.StudentRequestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,11 +52,12 @@ import java.util.List;
  * REST adapter for {@link com.example.opencodetutorial.domain.model.Group}, nested under
  * the course that owns it. It also hosts the enrolment and detachment of students, which
  * used to live under {@code /api/v1/students/{studentId}/groups/{groupId}} and are now
- * expressed as {@code .../groups/{groupId}/students/{studentId}}.
+ * expressed as {@code .../groups/{groupId}/students/{studentId}}, and the assignment of
+ * the tutor of the group.
  */
 @RestController
 @RequestMapping("/api/v1/centers/{centerId}/courses/{courseId}/groups")
-@Tag(name = "Groups", description = "Operations over the Group aggregate and its student enrolments. "
+@Tag(name = "Groups", description = "Operations over the Group aggregate, its student enrolments and its tutor. "
         + "Persisted to the `student_group` table.")
 public class GroupController {
 
@@ -66,6 +70,8 @@ public class GroupController {
     private final GetGroupDetailUseCase getGroupDetailUseCase;
     private final EnrollStudentInGroupUseCase enrollStudentInGroupUseCase;
     private final DetachStudentFromGroupUseCase detachStudentFromGroupUseCase;
+    private final AssignTutorToGroupUseCase assignTutorToGroupUseCase;
+    private final UnassignTutorFromGroupUseCase unassignTutorFromGroupUseCase;
 
     /**
      * Builds the controller with its required collaborators.
@@ -78,7 +84,9 @@ public class GroupController {
                            ListStudentsInGroupUseCase listStudentsInGroupUseCase,
                            GetGroupDetailUseCase getGroupDetailUseCase,
                            EnrollStudentInGroupUseCase enrollStudentInGroupUseCase,
-                           DetachStudentFromGroupUseCase detachStudentFromGroupUseCase) {
+                           DetachStudentFromGroupUseCase detachStudentFromGroupUseCase,
+                           AssignTutorToGroupUseCase assignTutorToGroupUseCase,
+                           UnassignTutorFromGroupUseCase unassignTutorFromGroupUseCase) {
         this.createGroupUseCase = createGroupUseCase;
         this.listGroupsUseCase = listGroupsUseCase;
         this.getGroupUseCase = getGroupUseCase;
@@ -88,6 +96,8 @@ public class GroupController {
         this.getGroupDetailUseCase = getGroupDetailUseCase;
         this.enrollStudentInGroupUseCase = enrollStudentInGroupUseCase;
         this.detachStudentFromGroupUseCase = detachStudentFromGroupUseCase;
+        this.assignTutorToGroupUseCase = assignTutorToGroupUseCase;
+        this.unassignTutorFromGroupUseCase = unassignTutorFromGroupUseCase;
     }
 
     /**
@@ -176,7 +186,7 @@ public class GroupController {
                 .buildAndExpand(createdId.value())
                 .toUri();
         return ResponseEntity.created(location)
-                .body(new GroupResponse(createdId.value(), courseId, request.name()));
+                .body(new GroupResponse(createdId.value(), courseId, request.name(), null));
     }
 
     /**
@@ -346,6 +356,68 @@ public class GroupController {
             @PathVariable Long studentId) {
         detachStudentFromGroupUseCase.execute(StudentRequestMapper.toDetachCommand(
                 centerId, courseId, groupId, studentId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Assigns the given professor as the tutor of the given group.
+     */
+    @Operation(
+            summary = "Assign a tutor to a group",
+            description = "Makes the given professor the tutor of the group, replacing the tutor it had, if any. "
+                    + "The tutor must be a professor of the center that owns the group's course. Idempotent: "
+                    + "assigning the tutor the group already has is a no-op. The `PUT` of the group never touches "
+                    + "the tutor.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Tutor assigned (or already present). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the professor does not belong to the center in the URL.",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "The professor belongs to another center than the "
+                    + "one that owns the group's course.",
+                    content = @Content)})
+    @PostMapping("/{groupId}/tutor/{professorId}")
+    public ResponseEntity<Void> assignTutor(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to assign the tutor to.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the professor that becomes the tutor.", example = "1", required = true)
+            @PathVariable Long professorId) {
+        assignTutorToGroupUseCase.execute(ProfessorRequestMapper.toAssignTutorCommand(
+                centerId, courseId, groupId, professorId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Removes the tutor of the given group.
+     */
+    @Operation(
+            summary = "Remove the tutor from a group",
+            description = "Removes the tutor of the group. Idempotent: removing a tutor that is not the current "
+                    + "one is a no-op.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Tutor removed (or already absent). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the professor does not belong to the center in the URL.",
+                    content = @Content)})
+    @DeleteMapping("/{groupId}/tutor/{professorId}")
+    public ResponseEntity<Void> unassignTutor(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to remove the tutor from.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the professor that is expected to be the tutor.",
+                    example = "1", required = true)
+            @PathVariable Long professorId) {
+        unassignTutorFromGroupUseCase.execute(ProfessorRequestMapper.toUnassignTutorCommand(
+                centerId, courseId, groupId, professorId));
         return ResponseEntity.noContent().build();
     }
 }

@@ -3,6 +3,7 @@ package com.example.opencodetutorial.application.usecase.impl;
 import com.example.opencodetutorial.domain.exception.CenterNotFoundException;
 import com.example.opencodetutorial.domain.exception.CourseNotFoundException;
 import com.example.opencodetutorial.domain.exception.GroupNotFoundException;
+import com.example.opencodetutorial.domain.exception.ProfessorNotFoundException;
 import com.example.opencodetutorial.domain.exception.StudentNotFoundException;
 import com.example.opencodetutorial.domain.model.Center;
 import com.example.opencodetutorial.domain.model.CenterId;
@@ -10,11 +11,14 @@ import com.example.opencodetutorial.domain.model.Course;
 import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
+import com.example.opencodetutorial.domain.model.Professor;
+import com.example.opencodetutorial.domain.model.ProfessorId;
 import com.example.opencodetutorial.domain.model.Student;
 import com.example.opencodetutorial.domain.model.StudentId;
 import com.example.opencodetutorial.domain.port.CenterRepository;
 import com.example.opencodetutorial.domain.port.CourseRepository;
 import com.example.opencodetutorial.domain.port.GroupRepository;
+import com.example.opencodetutorial.domain.port.ProfessorRepository;
 import com.example.opencodetutorial.domain.port.StudentRepository;
 import org.springframework.stereotype.Component;
 
@@ -33,23 +37,27 @@ public class HierarchyQueries {
     private final CourseRepository courseRepository;
     private final GroupRepository groupRepository;
     private final StudentRepository studentRepository;
+    private final ProfessorRepository professorRepository;
 
     /**
      * Builds the component with its required collaborators.
      *
-     * @param centerRepository  the center repository, must not be null
-     * @param courseRepository  the course repository, must not be null
-     * @param groupRepository   the group repository, must not be null
-     * @param studentRepository the student repository, must not be null
+     * @param centerRepository   the center repository, must not be null
+     * @param courseRepository   the course repository, must not be null
+     * @param groupRepository    the group repository, must not be null
+     * @param studentRepository  the student repository, must not be null
+     * @param professorRepository the professor repository, must not be null
      */
     public HierarchyQueries(CenterRepository centerRepository,
                             CourseRepository courseRepository,
                             GroupRepository groupRepository,
-                            StudentRepository studentRepository) {
+                            StudentRepository studentRepository,
+                            ProfessorRepository professorRepository) {
         this.centerRepository = centerRepository;
         this.courseRepository = courseRepository;
         this.groupRepository = groupRepository;
         this.studentRepository = studentRepository;
+        this.professorRepository = professorRepository;
     }
 
     /**
@@ -113,6 +121,26 @@ public class HierarchyQueries {
             throw new StudentNotFoundException(studentId);
         }
         return student;
+    }
+
+    /**
+     * Loads a professor that belongs to the given center.
+     *
+     * <p>A professor of another center is reported as not found too: from the caller's
+     * point of view it is not reachable under that URL.
+     *
+     * @param centerId    the center identifier, must not be null
+     * @param professorId the professor identifier, must not be null
+     * @return the existing professor
+     */
+    public Professor requireProfessor(CenterId centerId, ProfessorId professorId) {
+        requireCenter(centerId);
+        Professor professor = professorRepository.findById(professorId)
+                .orElseThrow(() -> new ProfessorNotFoundException(professorId));
+        if (!professor.centerId().equals(centerId)) {
+            throw new ProfessorNotFoundException(professorId);
+        }
+        return professor;
     }
 
     /**

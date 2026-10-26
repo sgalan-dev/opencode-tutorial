@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param surname  the person's primary surname
  * @param surname2 the person's optional second surname, or {@code null} when absent
  */
-@Schema(description = "Personal data of the person behind a student.")
+@Schema(description = "Personal data of the person behind a student, a professor or any other resource.")
 public record PersonSummaryResponse(
 
         @Schema(description = "Given name of the person.", example = "Ada")

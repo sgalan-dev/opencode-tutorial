@@ -65,6 +65,10 @@ The system SHALL remove the educational center with the supplied identifier. The
 - **WHEN** the caller DELETEs a center identifier that exists and has at least one dependent (course, student, etc.)
 - **THEN** the system responds 409 and the deletion is rejected
 
+#### Scenario: Center with professors
+- **WHEN** the caller DELETEs a center identifier that exists and has at least one professor
+- **THEN** the system responds 409 and the deletion is rejected
+
 ### Requirement: Center name uniqueness
 The system SHALL treat `name` as globally unique across educational centers. A second center MUST NOT be created or renamed to reuse a name already in use.
 

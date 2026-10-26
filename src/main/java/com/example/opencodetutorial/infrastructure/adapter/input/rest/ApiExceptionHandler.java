@@ -3,13 +3,16 @@ package com.example.opencodetutorial.infrastructure.adapter.input.rest;
 import com.example.opencodetutorial.domain.exception.CenterNotFoundException;
 import com.example.opencodetutorial.domain.exception.CourseNotFoundException;
 import com.example.opencodetutorial.domain.exception.DuplicateNameException;
+import com.example.opencodetutorial.domain.exception.DuplicateProfessorInCenterException;
 import com.example.opencodetutorial.domain.exception.GroupHasStudentsException;
 import com.example.opencodetutorial.domain.exception.GroupNotFoundException;
 import com.example.opencodetutorial.domain.exception.PersonNotFoundException;
+import com.example.opencodetutorial.domain.exception.ProfessorNotFoundException;
 import com.example.opencodetutorial.domain.exception.ResourceHasDependentsException;
 import com.example.opencodetutorial.domain.exception.StudentAlreadyEnrolledInCourseException;
 import com.example.opencodetutorial.domain.exception.StudentInDifferentCenterException;
 import com.example.opencodetutorial.domain.exception.StudentNotFoundException;
+import com.example.opencodetutorial.domain.exception.TutorInDifferentCenterException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +47,12 @@ public class ApiExceptionHandler {
      * Name of the unique constraint that backs the "at most one group per course" rule.
      */
     private static final String STUDENT_COURSE_CONSTRAINT = "UK_STUDENT_COURSE";
+
+    /**
+     * Name of the unique constraint that backs the "one professor per person per
+     * center" rule.
+     */
+    private static final String PROFESSOR_PERSON_CENTER_CONSTRAINT = "UK_PROFESSOR_PERSON_CENTER";
 
     /**
      * Builds the response body shared by every error response, with the supplied status.
@@ -108,6 +117,15 @@ public class ApiExceptionHandler {
     }
 
     /**
+     * Maps a missing professor to HTTP 404.
+     */
+    @ExceptionHandler(ProfessorNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleProfessorNotFound(ProfessorNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(body(HttpStatus.NOT_FOUND, "Professor not found", ex.getMessage()));
+    }
+
+    /**
      * Maps a duplicate name to HTTP 409.
      */
     @ExceptionHandler(DuplicateNameException.class)
@@ -154,16 +172,42 @@ public class ApiExceptionHandler {
     }
 
     /**
+     * Maps a duplicated professor in a center to HTTP 409.
+     */
+    @ExceptionHandler(DuplicateProfessorInCenterException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateProfessor(
+            DuplicateProfessorInCenterException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(body(HttpStatus.CONFLICT, "Duplicate professor in center", ex.getMessage()));
+    }
+
+    /**
+     * Maps a tutor that belongs to another center to HTTP 409.
+     */
+    @ExceptionHandler(TutorInDifferentCenterException.class)
+    public ResponseEntity<Map<String, Object>> handleTutorInDifferentCenter(
+            TutorInDifferentCenterException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(body(HttpStatus.CONFLICT, "Tutor belongs to another center", ex.getMessage()));
+    }
+
+    /**
      * Maps a database constraint violation to HTTP 409. This is the safety net for the
      * "one group per course per student" rule: a request that slips past the domain
      * check (for instance two concurrent ones) is still rejected by the unique
-     * constraint and answered with the very same status.
+     * constraint and answered with the very same status. The same applies to the
+     * "one professor per person per center" rule.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
-        String label = mentionsConstraint(ex, STUDENT_COURSE_CONSTRAINT)
-                ? "Student already enrolled in course"
-                : "Conflict";
+        String label;
+        if (mentionsConstraint(ex, STUDENT_COURSE_CONSTRAINT)) {
+            label = "Student already enrolled in course";
+        } else if (mentionsConstraint(ex, PROFESSOR_PERSON_CENTER_CONSTRAINT)) {
+            label = "Duplicate professor in center";
+        } else {
+            label = "Conflict";
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(body(HttpStatus.CONFLICT, label, rootMessage(ex)));
     }

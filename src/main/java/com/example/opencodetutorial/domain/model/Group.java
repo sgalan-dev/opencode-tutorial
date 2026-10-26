@@ -1,6 +1,7 @@
 package com.example.opencodetutorial.domain.model;
 
 import com.example.opencodetutorial.domain.exception.GroupHasStudentsException;
+import com.example.opencodetutorial.domain.exception.TutorInDifferentCenterException;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -10,8 +11,8 @@ import java.util.Set;
 
 /**
  * Group aggregate root.
- * Encapsulates the rules that govern a group's lifecycle (renaming and course transfer)
- * and exposes them as behaviour methods rather than setters.
+ * Encapsulates the rules that govern a group's lifecycle (renaming, course transfer
+ * and tutor assignment) and exposes them as behaviour methods rather than setters.
  *
  * <p>A group always belongs to exactly one {@link Course}. The enrolments live in the
  * {@link Student} aggregate (the junction is owned by the student), so this aggregate only
@@ -19,6 +20,10 @@ import java.util.Set;
  * rehydrates the group; {@link #moveToCourse(CourseId)} uses it to refuse moving a group
  * that still has students, because the denormalized course of every enrolment link would
  * otherwise become stale.
+ *
+ * <p>A group may have a tutor: a {@link Professor} of the center that owns the group's
+ * course. The reference lives here and not in the {@link Professor} aggregate, so the
+ * graph of aggregates stays acyclic and "who tutors what" remains a read question.
  *
  * <p>The {@link #id()} is {@code null} while the aggregate is in the "just created"
  * state and gets assigned by the persistence layer on first save. Once rehydrated
@@ -36,18 +41,21 @@ public final class Group {
     private GroupName name;
     private CourseId courseId;
     private final Set<StudentId> enrolledStudentIds;
+    private ProfessorId tutorProfessorId;
     private Instant updatedAt;
 
     private Group(GroupId id,
                   GroupName name,
                   CourseId courseId,
                   Set<StudentId> enrolledStudentIds,
+                  ProfessorId tutorProfessorId,
                   Instant createdAt,
                   Instant updatedAt) {
         this.id = id;
         this.name = name;
         this.courseId = courseId;
         this.enrolledStudentIds = new LinkedHashSet<>(enrolledStudentIds);
+        this.tutorProfessorId = tutorProfessorId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -66,6 +74,7 @@ public final class Group {
                 Objects.requireNonNull(name, "name must not be null"),
                 Objects.requireNonNull(courseId, "courseId must not be null"),
                 Set.of(),
+                null,
                 now,
                 now);
     }
@@ -88,7 +97,28 @@ public final class Group {
                                   CourseId courseId,
                                   Instant createdAt,
                                   Instant updatedAt) {
-        return rehydrate(id, name, courseId, Set.of(), createdAt, updatedAt);
+        return rehydrate(id, name, courseId, Set.of(), null, createdAt, updatedAt);
+    }
+
+    /**
+     * Rehydrates a {@link Group} from persistence, preserving its original identity
+     * and timestamps, including the tutor it may have.
+     *
+     * @param id              the existing identifier, must not be null
+     * @param name            the stored group name, must not be null
+     * @param courseId        the owning course identifier, must not be null
+     * @param tutorProfessorId the stored tutor, or {@code null} when the group has none
+     * @param createdAt       the original creation timestamp, must not be null
+     * @param updatedAt       the last update timestamp, must not be null
+     * @return the reconstructed group
+     */
+    public static Group rehydrate(GroupId id,
+                                  GroupName name,
+                                  CourseId courseId,
+                                  ProfessorId tutorProfessorId,
+                                  Instant createdAt,
+                                  Instant updatedAt) {
+        return rehydrate(id, name, courseId, Set.of(), tutorProfessorId, createdAt, updatedAt);
     }
 
     /**
@@ -110,13 +140,36 @@ public final class Group {
                                   Set<StudentId> enrolledStudentIds,
                                   Instant createdAt,
                                   Instant updatedAt) {
+        return rehydrate(id, name, courseId, enrolledStudentIds, null, createdAt, updatedAt);
+    }
+
+    /**
+     * Rehydrates a {@link Group} from persistence together with the students enrolled
+     * in it and the tutor it may have.
+     *
+     * @param id                 the existing identifier, must not be null
+     * @param name               the stored group name, must not be null
+     * @param courseId           the owning course identifier, must not be null
+     * @param enrolledStudentIds the students currently enrolled, must not be null
+     * @param tutorProfessorId   the stored tutor, or {@code null} when the group has none
+     * @param createdAt          the original creation timestamp, must not be null
+     * @param updatedAt          the last update timestamp, must not be null
+     * @return the reconstructed group
+     */
+    public static Group rehydrate(GroupId id,
+                                  GroupName name,
+                                  CourseId courseId,
+                                  Set<StudentId> enrolledStudentIds,
+                                  ProfessorId tutorProfessorId,
+                                  Instant createdAt,
+                                  Instant updatedAt) {
         Objects.requireNonNull(id, "id must not be null");
         Objects.requireNonNull(name, "name must not be null");
         Objects.requireNonNull(courseId, "courseId must not be null");
         Objects.requireNonNull(enrolledStudentIds, "enrolledStudentIds must not be null");
         Objects.requireNonNull(createdAt, "createdAt must not be null");
         Objects.requireNonNull(updatedAt, "updatedAt must not be null");
-        return new Group(id, name, courseId, enrolledStudentIds, createdAt, updatedAt);
+        return new Group(id, name, courseId, enrolledStudentIds, tutorProfessorId, createdAt, updatedAt);
     }
 
     /**
@@ -148,6 +201,46 @@ public final class Group {
         }
     }
 
+    /**
+     * Assigns a tutor to the group, replacing the tutor it had, if any.
+     *
+     * <p>The course that owns the group is required because the center of a group is
+     * the center of its course: the aggregate needs it to apply the "the tutor is a
+     * professor of the group's center" rule itself instead of trusting the caller. It
+     * must be the course the group belongs to.
+     *
+     * @param tutor  the professor that becomes the tutor, must not be null
+     * @param course the course that owns {@code group}, must not be null
+     * @throws TutorInDifferentCenterException if the tutor does not belong to the
+     *         center that owns the course
+     * @throws IllegalArgumentException if the course does not own this group
+     */
+    public void assignTutor(Professor tutor, Course course) {
+        Objects.requireNonNull(tutor, "tutor must not be null");
+        Objects.requireNonNull(course, "course must not be null");
+        if (!course.id().equals(courseId)) {
+            throw new IllegalArgumentException("Course with id " + course.id().value()
+                    + " does not own group with id " + id.value());
+        }
+        if (!course.centerId().equals(tutor.centerId())) {
+            throw new TutorInDifferentCenterException(tutor.id(), course.centerId());
+        }
+        if (!Objects.equals(tutor.id(), tutorProfessorId)) {
+            this.tutorProfessorId = tutor.id();
+            touch();
+        }
+    }
+
+    /**
+     * Removes the tutor of the group. No-op (idempotent) if the group has no tutor.
+     */
+    public void unassignTutor() {
+        if (tutorProfessorId != null) {
+            this.tutorProfessorId = null;
+            touch();
+        }
+    }
+
     private void touch() {
         this.updatedAt = Instant.now();
     }
@@ -162,6 +255,15 @@ public final class Group {
 
     public CourseId courseId() {
         return courseId;
+    }
+
+    /**
+     * Returns the tutor of the group, if it has one.
+     *
+     * @return the tutor identifier, or {@code null} when the group has no tutor
+     */
+    public ProfessorId tutorProfessorId() {
+        return tutorProfessorId;
     }
 
     /**
