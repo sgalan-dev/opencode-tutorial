@@ -1,5 +1,6 @@
 package com.example.opencodetutorial.domain.port;
 
+import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
 
@@ -38,6 +39,14 @@ public interface GroupRepository {
      * @return the list of groups, never null
      */
     List<Group> findAll();
+
+    /**
+     * Lists the groups that belong to the given course.
+     *
+     * @param courseId the owning course identifier, must not be null
+     * @return the groups of that course, never null (empty when it has none)
+     */
+    List<Group> findByCourseId(CourseId courseId);
 
     /**
      * Removes the group with the given identifier. No-op if the identifier is unknown.

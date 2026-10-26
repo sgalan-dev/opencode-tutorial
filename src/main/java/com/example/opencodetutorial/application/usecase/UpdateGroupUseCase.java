@@ -9,12 +9,13 @@ import com.example.opencodetutorial.domain.model.Group;
 public interface UpdateGroupUseCase {
 
     /**
-     * Replaces the given group with the values from the command.
+     * Replaces the given group with the values from the command, keeping it under the
+     * same course.
      *
      * @param command the update payload, must not be null
      * @return the updated group (with refreshed timestamps)
      * @throws com.example.opencodetutorial.domain.exception.GroupNotFoundException
-     *         if no group exists with the supplied identifier
+     *         if no group with that identifier exists under the supplied course
      */
     Group execute(UpdateGroupCommand command);
 }

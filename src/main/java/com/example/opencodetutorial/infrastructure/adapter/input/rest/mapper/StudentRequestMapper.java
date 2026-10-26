@@ -1,8 +1,8 @@
 package com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper;
 
-import com.example.opencodetutorial.application.usecase.command.AssignStudentToGroupCommand;
 import com.example.opencodetutorial.application.usecase.command.CreateStudentCommand;
 import com.example.opencodetutorial.application.usecase.command.DetachStudentFromGroupCommand;
+import com.example.opencodetutorial.application.usecase.command.EnrollStudentInGroupCommand;
 import com.example.opencodetutorial.application.usecase.command.UpdateStudentCommand;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.StudentRequest;
 
@@ -10,6 +10,8 @@ import java.util.Set;
 
 /**
  * Translates {@link StudentRequest} payloads into framework-free application commands.
+ * The center the student is reachable through always comes from the canonical URL; the
+ * optional {@code centerId} of the payload is the destination of a transfer.
  */
 public final class StudentRequestMapper {
 
@@ -18,46 +20,55 @@ public final class StudentRequestMapper {
     }
 
     /**
-     * Builds a {@link CreateStudentCommand} from a request payload.
+     * Builds a {@link CreateStudentCommand} from the parent center and a request payload.
      *
-     * @param request the request payload, must not be null
+     * @param centerId the parent center taken from the URL
+     * @param request  the request payload, must not be null
      * @return the create command
      */
-    public static CreateStudentCommand toCreateCommand(StudentRequest request) {
-        return new CreateStudentCommand(request.personId(), copy(request.groupIds()));
+    public static CreateStudentCommand toCreateCommand(Long centerId, StudentRequest request) {
+        return new CreateStudentCommand(centerId, request.personId(), copy(request.groupIds()));
     }
 
     /**
-     * Builds an {@link UpdateStudentCommand} from an identifier and a request payload.
+     * Builds an {@link UpdateStudentCommand} from the URL identifiers and a request payload.
      *
-     * @param id      the target student identifier
-     * @param request the request payload, must not be null
+     * @param centerId the center the student is currently reachable through
+     * @param id       the target student taken from the URL
+     * @param request  the request payload, must not be null
      * @return the update command
      */
-    public static UpdateStudentCommand toUpdateCommand(Long id, StudentRequest request) {
-        return new UpdateStudentCommand(id, request.personId(), copy(request.groupIds()));
+    public static UpdateStudentCommand toUpdateCommand(Long centerId, Long id, StudentRequest request) {
+        return new UpdateStudentCommand(centerId, id, request.centerId(), request.personId(),
+                copy(request.groupIds()));
     }
 
     /**
-     * Builds an {@link AssignStudentToGroupCommand} from path variables.
+     * Builds an {@link EnrollStudentInGroupCommand} from the URL chain.
      *
-     * @param studentId the student identifier
-     * @param groupId   the group identifier
-     * @return the assign command
+     * @param centerId  the center taken from the URL
+     * @param courseId  the course taken from the URL
+     * @param groupId   the group taken from the URL
+     * @param studentId the student taken from the URL
+     * @return the enrol command
      */
-    public static AssignStudentToGroupCommand toAssignCommand(Long studentId, Long groupId) {
-        return new AssignStudentToGroupCommand(studentId, groupId);
+    public static EnrollStudentInGroupCommand toEnrollCommand(Long centerId, Long courseId, Long groupId,
+                                                              Long studentId) {
+        return new EnrollStudentInGroupCommand(centerId, courseId, groupId, studentId);
     }
 
     /**
-     * Builds a {@link DetachStudentFromGroupCommand} from path variables.
+     * Builds a {@link DetachStudentFromGroupCommand} from the URL chain.
      *
-     * @param studentId the student identifier
-     * @param groupId   the group identifier
+     * @param centerId  the center taken from the URL
+     * @param courseId  the course taken from the URL
+     * @param groupId   the group taken from the URL
+     * @param studentId the student taken from the URL
      * @return the detach command
      */
-    public static DetachStudentFromGroupCommand toDetachCommand(Long studentId, Long groupId) {
-        return new DetachStudentFromGroupCommand(studentId, groupId);
+    public static DetachStudentFromGroupCommand toDetachCommand(Long centerId, Long courseId, Long groupId,
+                                                                Long studentId) {
+        return new DetachStudentFromGroupCommand(centerId, courseId, groupId, studentId);
     }
 
     private static Set<Long> copy(Set<Long> source) {

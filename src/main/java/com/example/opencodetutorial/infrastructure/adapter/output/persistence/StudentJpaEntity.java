@@ -18,9 +18,13 @@ import java.util.Set;
 /**
  * JPA entity for the {@code student} table plus its many-to-many link to groups.
  *
- * <p>The {@code Set<Long> groupIds} is mapped with {@link ElementCollection} onto the
- * junction table {@code student_group_link}. The junction has no aggregate of its own:
- * it is owned by {@code Student} and managed entirely by {@code StudentPersistenceAdapter}.
+ * <p>The enrolments are mapped with {@link ElementCollection} onto the junction table
+ * {@code student_group_link}. The junction has no aggregate of its own: it is owned by
+ * {@code Student} and managed entirely by {@code StudentPersistenceAdapter}.
+ *
+ * <p>Each link row stores the denormalized {@code course_id} of the group it points at
+ * (see {@link EnrollmentLinkJpa}) so the database can enforce "at most one group per
+ * course per student" with a unique constraint.
  */
 @Entity
 @Table(name = "student")
@@ -34,12 +38,14 @@ public class StudentJpaEntity {
     @Column(name = "person_id", nullable = false)
     private Long personId;
 
+    @Column(name = "center_id", nullable = false)
+    private Long centerId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "student_group_link",
             joinColumns = @JoinColumn(name = "student_id"))
-    @Column(name = "group_id", nullable = false)
-    private Set<Long> groupIds = new LinkedHashSet<>();
+    private Set<EnrollmentLinkJpa> enrolments = new LinkedHashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -63,12 +69,16 @@ public class StudentJpaEntity {
         this.personId = personId;
     }
 
-    public Set<Long> getGroupIds() {
-        return groupIds;
+    public Long getCenterId() {
+        return centerId;
     }
 
-    public void setGroupIds(Set<Long> groupIds) {
-        this.groupIds = groupIds;
+    public void setCenterId(Long centerId) {
+        this.centerId = centerId;
+    }
+
+    public Set<EnrollmentLinkJpa> getEnrolments() {
+        return enrolments;
     }
 
     public Instant getCreatedAt() {

@@ -6,10 +6,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * Response payload for group-related endpoints.
  *
- * @param id   the group's identifier
- * @param name the group's display name
+ * @param id       the group's identifier
+ * @param courseId the identifier of the course that owns the group
+ * @param name     the group's display name
  */
-@Schema(description = "Group resource as returned by the API.")
+@Schema(description = "Group resource as returned by the API. Persisted to the `student_group` table.")
 public record GroupResponse(
 
         @Schema(description = "Auto-generated identifier of the group.",
@@ -17,7 +18,10 @@ public record GroupResponse(
                 accessMode = Schema.AccessMode.READ_ONLY)
         Long id,
 
-        @Schema(description = "Display name of the group.", example = "Programación 1")
+        @Schema(description = "Identifier of the course that owns the group.", example = "1")
+        Long courseId,
+
+        @Schema(description = "Display name of the group.", example = "Grupo A")
         String name) {
 
     /**
@@ -27,6 +31,6 @@ public record GroupResponse(
      * @return the response payload
      */
     public static GroupResponse from(Group group) {
-        return new GroupResponse(group.id().value(), group.name().value());
+        return new GroupResponse(group.id().value(), group.courseId().value(), group.name().value());
     }
 }

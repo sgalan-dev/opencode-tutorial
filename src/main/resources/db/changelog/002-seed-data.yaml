@@ -1,6 +1,43 @@
 databaseChangeLog:
+  # Demo data for the Center -> Course -> Group -> Student hierarchy. Rewritten from
+  # scratch (see design.md, decision 5). Identifiers are explicit so the links can
+  # reference them without lookups.
+  #
+  # Two courses are seeded so the N:M case is still covered: a student may hold one
+  # group per course, so being enrolled in two groups needs two different courses.
+
   - changeSet:
-      id: 005-seed-persons
+      id: 101-seed-center
+      author: opencode-tutorial
+      changes:
+        - insert:
+            tableName: center
+            columns:
+              - column: { name: name, value: "Centro de prueba 1" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 102-seed-courses
+      author: opencode-tutorial
+      changes:
+        - insert:
+            tableName: course
+            columns:
+              - column: { name: center_id, valueNumeric: 1 }
+              - column: { name: name, value: "Primero Primaria" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: course
+            columns:
+              - column: { name: center_id, valueNumeric: 1 }
+              - column: { name: name, value: "Segundo Primaria" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 103-seed-persons
       author: opencode-tutorial
       changes:
         - insert:
@@ -33,37 +70,44 @@ databaseChangeLog:
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
 
   - changeSet:
-      id: 006-seed-groups
+      id: 104-seed-groups
       author: opencode-tutorial
       changes:
+        # Grupo A, Grupo B -> Primero Primaria
         - insert:
             tableName: student_group
             columns:
-              - column: { name: name, value: "Programación 1" }
+              - column: { name: course_id, valueNumeric: 1 }
+              - column: { name: name, value: "Grupo A" }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
         - insert:
             tableName: student_group
             columns:
-              - column: { name: name, value: "Bases de Datos" }
+              - column: { name: course_id, valueNumeric: 1 }
+              - column: { name: name, value: "Grupo B" }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+        # Grupo C -> Segundo Primaria
         - insert:
             tableName: student_group
             columns:
-              - column: { name: name, value: "Ingeniería del Software" }
+              - column: { name: course_id, valueNumeric: 2 }
+              - column: { name: name, value: "Grupo C" }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
 
   - changeSet:
-      id: 007-seed-students
+      id: 105-seed-students
       author: opencode-tutorial
       changes:
-        # Ada -> Programación 1
+        # Ada -> Grupo A (Primero) + Grupo C (Segundo): one group per course (N:M)
         - insert:
             tableName: student
             columns:
               - column: { name: person_id, valueNumeric: 1 }
+              - column: { name: center_id, valueNumeric: 1 }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
         - insert:
@@ -71,12 +115,20 @@ databaseChangeLog:
             columns:
               - column: { name: student_id, valueNumeric: 1 }
               - column: { name: group_id,   valueNumeric: 1 }
+              - column: { name: course_id,  valueNumeric: 1 }
+        - insert:
+            tableName: student_group_link
+            columns:
+              - column: { name: student_id, valueNumeric: 1 }
+              - column: { name: group_id,   valueNumeric: 3 }
+              - column: { name: course_id,  valueNumeric: 2 }
 
-        # Linus -> Bases de Datos, Ingeniería del Software (covers the N:M case)
+        # Linus -> Grupo B (Primero)
         - insert:
             tableName: student
             columns:
               - column: { name: person_id, valueNumeric: 2 }
+              - column: { name: center_id, valueNumeric: 1 }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
         - insert:
@@ -84,34 +136,28 @@ databaseChangeLog:
             columns:
               - column: { name: student_id, valueNumeric: 2 }
               - column: { name: group_id,   valueNumeric: 2 }
-        - insert:
-            tableName: student_group_link
-            columns:
-              - column: { name: student_id, valueNumeric: 2 }
-              - column: { name: group_id,   valueNumeric: 3 }
+              - column: { name: course_id,  valueNumeric: 1 }
 
-        # Grace -> Programación 1, Bases de Datos
+        # Grace -> Grupo C (Segundo)
         - insert:
             tableName: student
             columns:
               - column: { name: person_id, valueNumeric: 3 }
+              - column: { name: center_id, valueNumeric: 1 }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
         - insert:
             tableName: student_group_link
             columns:
               - column: { name: student_id, valueNumeric: 3 }
-              - column: { name: group_id,   valueNumeric: 1 }
-        - insert:
-            tableName: student_group_link
-            columns:
-              - column: { name: student_id, valueNumeric: 3 }
-              - column: { name: group_id,   valueNumeric: 2 }
+              - column: { name: group_id,   valueNumeric: 3 }
+              - column: { name: course_id,  valueNumeric: 2 }
 
-        # Alan -> no groups enrolled (covers the empty-group case)
+        # Alan -> no groups enrolled (covers the empty-enrolment case)
         - insert:
             tableName: student
             columns:
               - column: { name: person_id, valueNumeric: 4 }
+              - column: { name: center_id, valueNumeric: 1 }
               - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
               - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }

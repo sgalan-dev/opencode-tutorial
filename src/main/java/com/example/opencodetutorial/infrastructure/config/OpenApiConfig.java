@@ -33,12 +33,28 @@ public class OpenApiConfig {
                         .title("opencode-tutorial API")
                         .version("0.1.0")
                         .description("""
-                                CRUD API for managing Students, Groups and Persons.
+                                CRUD API for an educational center: Centers, Courses, Groups, Students and Persons.
 
-                                A student is associated with exactly one person and may be enrolled
-                                in zero, one or many groups at the same time. The aggregate `Group`
-                                is persisted to a table called `student_group` because `GROUP` is a
-                                reserved SQL keyword.
+                                The hierarchy is `Center -> Course -> Group`, and every resource is
+                                reachable through its canonical nested URL:
+
+                                - `/api/v1/centers` and `/api/v1/centers/{centerId}`
+                                - `/api/v1/centers/{centerId}/courses[/{courseId}]`
+                                - `/api/v1/centers/{centerId}/courses/{courseId}/groups[/{groupId}]`
+                                - `/api/v1/centers/{centerId}/students[/{studentId}]`
+                                - `/api/v1/persons[/{id}]` (persons are global, not scoped to a center)
+
+                                Enrolling and detaching a student are sub-resources of the group:
+                                `POST|DELETE .../groups/{groupId}/students/{studentId}`.
+
+                                A student is associated with exactly one person, belongs to exactly one
+                                center, and may be enrolled in zero, one or many groups — but at most one
+                                per course. That last rule is enforced twice: in the domain (409 with a
+                                readable message) and in the database, through a unique constraint on the
+                                `student_group_link (student_id, course_id)` junction.
+
+                                The aggregate `Group` is persisted to a table called `student_group`
+                                because `GROUP` is a reserved SQL keyword.
                                 """)
                         .contact(new Contact()
                                 .name("opencode-tutorial maintainers")

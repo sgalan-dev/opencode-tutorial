@@ -1,33 +1,36 @@
 package com.example.opencodetutorial.application.usecase.impl;
 
 import com.example.opencodetutorial.application.usecase.GetGroupUseCase;
-import com.example.opencodetutorial.domain.exception.GroupNotFoundException;
+import com.example.opencodetutorial.domain.model.CenterId;
+import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
-import com.example.opencodetutorial.domain.port.GroupRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Default {@link GetGroupUseCase} implementation. Surfaces a missing group as a
- * domain exception so the REST layer can map it to HTTP 404.
+ * Default {@link GetGroupUseCase} implementation. A group that belongs to another
+ * course is reported as not found, because it is not reachable under this URL.
+ *
+ * <p>Not final: Spring proxies the class to apply {@code @Transactional}.
  */
 @Service
-public final class GetGroupService implements GetGroupUseCase {
+public class GetGroupService implements GetGroupUseCase {
 
-    private final GroupRepository groupRepository;
+    private final HierarchyQueries hierarchy;
 
     /**
      * Builds the service with its required collaborator.
      *
-     * @param groupRepository the group repository, must not be null
+     * @param hierarchy used to resolve and validate the center/course/group chain
      */
-    public GetGroupService(GroupRepository groupRepository) {
-        this.groupRepository = groupRepository;
+    public GetGroupService(HierarchyQueries hierarchy) {
+        this.hierarchy = hierarchy;
     }
 
     @Override
-    public Group execute(GroupId id) {
-        return groupRepository.findById(id)
-                .orElseThrow(() -> new GroupNotFoundException(id));
+    @Transactional(readOnly = true)
+    public Group execute(CenterId centerId, CourseId courseId, GroupId groupId) {
+        return hierarchy.requireGroup(centerId, courseId, groupId);
     }
 }
