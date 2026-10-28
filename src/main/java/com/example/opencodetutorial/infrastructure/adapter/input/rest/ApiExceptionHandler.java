@@ -12,6 +12,8 @@ import com.example.opencodetutorial.domain.exception.ResourceHasDependentsExcept
 import com.example.opencodetutorial.domain.exception.StudentAlreadyEnrolledInCourseException;
 import com.example.opencodetutorial.domain.exception.StudentInDifferentCenterException;
 import com.example.opencodetutorial.domain.exception.StudentNotFoundException;
+import com.example.opencodetutorial.domain.exception.SubjectNotFoundException;
+import com.example.opencodetutorial.domain.exception.SubjectProfessorInDifferentCenterException;
 import com.example.opencodetutorial.domain.exception.TutorInDifferentCenterException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -53,6 +55,12 @@ public class ApiExceptionHandler {
      * center" rule.
      */
     private static final String PROFESSOR_PERSON_CENTER_CONSTRAINT = "UK_PROFESSOR_PERSON_CENTER";
+
+    /**
+     * Name of the unique constraint that backs the "unique subject name within its
+     * course" rule.
+     */
+    private static final String SUBJECT_COURSE_NAME_CONSTRAINT = "UK_SUBJECT_COURSE_NAME";
 
     /**
      * Builds the response body shared by every error response, with the supplied status.
@@ -126,6 +134,15 @@ public class ApiExceptionHandler {
     }
 
     /**
+     * Maps a missing subject to HTTP 404.
+     */
+    @ExceptionHandler(SubjectNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSubjectNotFound(SubjectNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(body(HttpStatus.NOT_FOUND, "Subject not found", ex.getMessage()));
+    }
+
+    /**
      * Maps a duplicate name to HTTP 409.
      */
     @ExceptionHandler(DuplicateNameException.class)
@@ -192,11 +209,23 @@ public class ApiExceptionHandler {
     }
 
     /**
+     * Maps a professor that belongs to another center than the subject's course to
+     * HTTP 409.
+     */
+    @ExceptionHandler(SubjectProfessorInDifferentCenterException.class)
+    public ResponseEntity<Map<String, Object>> handleSubjectProfessorInDifferentCenter(
+            SubjectProfessorInDifferentCenterException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(body(HttpStatus.CONFLICT, "Professor belongs to another center", ex.getMessage()));
+    }
+
+    /**
      * Maps a database constraint violation to HTTP 409. This is the safety net for the
      * "one group per course per student" rule: a request that slips past the domain
      * check (for instance two concurrent ones) is still rejected by the unique
      * constraint and answered with the very same status. The same applies to the
-     * "one professor per person per center" rule.
+     * "one professor per person per center" rule and to the "unique subject name
+     * within its course" rule.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
@@ -205,6 +234,8 @@ public class ApiExceptionHandler {
             label = "Student already enrolled in course";
         } else if (mentionsConstraint(ex, PROFESSOR_PERSON_CENTER_CONSTRAINT)) {
             label = "Duplicate professor in center";
+        } else if (mentionsConstraint(ex, SUBJECT_COURSE_NAME_CONSTRAINT)) {
+            label = "Duplicate subject name in course";
         } else {
             label = "Conflict";
         }

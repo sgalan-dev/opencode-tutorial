@@ -95,6 +95,17 @@ The system MUST refuse to delete a professor that is the tutor of at least one g
 - **WHEN** the caller DELETEs a professor after every tutoring assignment of that professor has been removed
 - **THEN** the system responds 204
 
+### Requirement: Professor is not deleted while teaching a subject
+The system MUST refuse to delete a professor that is the assigned teacher of at least one subject, and SHALL NOT leave partial state behind.
+
+#### Scenario: Professor teaches a subject
+- **WHEN** the caller DELETEs a professor that is assigned to teach at least one subject
+- **THEN** the system responds 409 and the professor is kept
+
+#### Scenario: Professor no longer teaches any subject
+- **WHEN** the caller DELETEs a professor after every teaching assignment of that professor has been removed
+- **THEN** the system responds 204
+
 ### Requirement: At most one professor per person within a center
 The system MUST prevent a person from being registered twice as a professor within the same center. The rule SHALL be enforced in the application domain and also in the database so that direct persistence cannot bypass it.
 

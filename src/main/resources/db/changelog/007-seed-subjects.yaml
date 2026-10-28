@@ -1,0 +1,83 @@
+databaseChangeLog:
+  # Demo data for the Subject aggregate and its teaching assignment.
+  #
+  # Identifiers are not forced on the inserted rows: H2 does not advance an identity
+  # sequence when a value is inserted explicitly, so forcing ids would make the next
+  # application-generated id collide with the seeded ones. The rows are inserted in a
+  # fixed order on a brand new table (subject, subject_teaching) and every reference is
+  # written with the resulting identifier explicitly.
+  #
+  # The four cases that have to be visible are covered:
+  #   - a subject with a professor (Matematicas of course 1, Ciencias of course 3)
+  #   - a subject without a professor (Lengua, Matematicas of course 2)
+  #   - the same subject name in two different courses (Matematicas in courses 1 and 2)
+  #   - a professor who belongs to the center of the course he teaches (center 2)
+
+  - changeSet:
+      id: 113-seed-course-center-2
+      author: opencode-tutorial
+      # Course 3 lives in center 2, the one seeded in 005-seed-professors.yaml.
+      changes:
+        - insert:
+            tableName: course
+            columns:
+              - column: { name: center_id, valueNumeric: 2 }
+              - column: { name: name, value: "Tercero Primaria" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 114-seed-subjects
+      author: opencode-tutorial
+      # Subject 1 "Matematicas" -> course 1, subject 2 "Lengua" -> course 1,
+      # subject 3 "Matematicas" -> course 2 (same name, different course),
+      # subject 4 "Ciencias" -> course 3.
+      changes:
+        - insert:
+            tableName: subject
+            columns:
+              - column: { name: course_id, valueNumeric: 1 }
+              - column: { name: name, value: "Matemáticas" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: subject
+            columns:
+              - column: { name: course_id, valueNumeric: 1 }
+              - column: { name: name, value: "Lengua" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: subject
+            columns:
+              - column: { name: course_id, valueNumeric: 2 }
+              - column: { name: name, value: "Matemáticas" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: subject
+            columns:
+              - column: { name: course_id, valueNumeric: 3 }
+              - column: { name: name, value: "Ciencias" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 115-seed-subject-teaching
+      author: opencode-tutorial
+      # Subject 1 is taught by professor 1 (center 1) and subject 4 by professor 2
+      # (center 2). Subjects 2 and 3 have no teaching row: a subject without a
+      # professor is a legitimate state.
+      changes:
+        - insert:
+            tableName: subject_teaching
+            columns:
+              - column: { name: course_id, valueNumeric: 1 }
+              - column: { name: subject_id, valueNumeric: 1 }
+              - column: { name: professor_id, valueNumeric: 1 }
+        - insert:
+            tableName: subject_teaching
+            columns:
+              - column: { name: course_id, valueNumeric: 3 }
+              - column: { name: subject_id, valueNumeric: 4 }
+              - column: { name: professor_id, valueNumeric: 2 }

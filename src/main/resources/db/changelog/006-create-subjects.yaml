@@ -1,0 +1,112 @@
+databaseChangeLog:
+  # Incremental schema changes for the Subject aggregate and its teaching assignment.
+  # 001 to 005 are left untouched: the rule from AGENTS.md is that schema changes land
+  # in new changesets, never by rewriting the existing ones.
+  #
+  # The table is named `subject` (not suffixed) because SUBJECT is not a reserved SQL
+  # keyword, unlike GROUP, which is why the group table is `student_group`.
+
+  - changeSet:
+      id: 012-create-subject
+      author: opencode-tutorial
+      # A subject belongs to exactly one course and is taught by at most one professor.
+      # The name is only unique *within* its course: two different courses may declare
+      # the same subject name.
+      changes:
+        - createTable:
+            tableName: subject
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: subject
+            columnNames: course_id, name
+            constraintName: uk_subject_course_name
+        - addForeignKeyConstraint:
+            baseTableName: subject
+            baseColumnNames: course_id
+            referencedTableName: course
+            referencedColumnNames: id
+            constraintName: fk_subject_course
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 013-create-subject-teaching
+      author: opencode-tutorial
+      # The teaching assignment is materialised in its own table instead of a nullable
+      # `professor_id` column on `subject`: it IS the relation between course, subject
+      # and professor. course_id is DENORMALIZED from `subject`, exactly like
+      # student_group_link.course_id, so the row carries the whole chain.
+      #
+      # The primary key on subject_id is the second layer of the domain rule "a subject
+      # has at most one professor": the database refuses a second row for the same
+      # subject.
+      changes:
+        - createTable:
+            tableName: subject_teaching
+            columns:
+              - column:
+                  name: course_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: professor_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: subject_teaching
+            columnNames: subject_id
+            constraintName: pk_subject_teaching
+        - addForeignKeyConstraint:
+            baseTableName: subject_teaching
+            baseColumnNames: course_id
+            referencedTableName: course
+            referencedColumnNames: id
+            constraintName: fk_teaching_course
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: subject_teaching
+            baseColumnNames: subject_id
+            referencedTableName: subject
+            referencedColumnNames: id
+            constraintName: fk_teaching_subject
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: subject_teaching
+            baseColumnNames: professor_id
+            referencedTableName: professor
+            referencedColumnNames: id
+            constraintName: fk_teaching_professor
+            onDelete: RESTRICT

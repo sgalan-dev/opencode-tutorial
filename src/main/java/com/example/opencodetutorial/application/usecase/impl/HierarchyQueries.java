@@ -5,6 +5,7 @@ import com.example.opencodetutorial.domain.exception.CourseNotFoundException;
 import com.example.opencodetutorial.domain.exception.GroupNotFoundException;
 import com.example.opencodetutorial.domain.exception.ProfessorNotFoundException;
 import com.example.opencodetutorial.domain.exception.StudentNotFoundException;
+import com.example.opencodetutorial.domain.exception.SubjectNotFoundException;
 import com.example.opencodetutorial.domain.model.Center;
 import com.example.opencodetutorial.domain.model.CenterId;
 import com.example.opencodetutorial.domain.model.Course;
@@ -15,11 +16,14 @@ import com.example.opencodetutorial.domain.model.Professor;
 import com.example.opencodetutorial.domain.model.ProfessorId;
 import com.example.opencodetutorial.domain.model.Student;
 import com.example.opencodetutorial.domain.model.StudentId;
+import com.example.opencodetutorial.domain.model.Subject;
+import com.example.opencodetutorial.domain.model.SubjectId;
 import com.example.opencodetutorial.domain.port.CenterRepository;
 import com.example.opencodetutorial.domain.port.CourseRepository;
 import com.example.opencodetutorial.domain.port.GroupRepository;
 import com.example.opencodetutorial.domain.port.ProfessorRepository;
 import com.example.opencodetutorial.domain.port.StudentRepository;
+import com.example.opencodetutorial.domain.port.SubjectRepository;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,6 +42,7 @@ public class HierarchyQueries {
     private final GroupRepository groupRepository;
     private final StudentRepository studentRepository;
     private final ProfessorRepository professorRepository;
+    private final SubjectRepository subjectRepository;
 
     /**
      * Builds the component with its required collaborators.
@@ -47,17 +52,20 @@ public class HierarchyQueries {
      * @param groupRepository    the group repository, must not be null
      * @param studentRepository  the student repository, must not be null
      * @param professorRepository the professor repository, must not be null
+     * @param subjectRepository  the subject repository, must not be null
      */
     public HierarchyQueries(CenterRepository centerRepository,
                             CourseRepository courseRepository,
                             GroupRepository groupRepository,
                             StudentRepository studentRepository,
-                            ProfessorRepository professorRepository) {
+                            ProfessorRepository professorRepository,
+                            SubjectRepository subjectRepository) {
         this.centerRepository = centerRepository;
         this.courseRepository = courseRepository;
         this.groupRepository = groupRepository;
         this.studentRepository = studentRepository;
         this.professorRepository = professorRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     /**
@@ -104,6 +112,24 @@ public class HierarchyQueries {
             throw new GroupNotFoundException(groupId);
         }
         return group;
+    }
+
+    /**
+     * Loads a subject that belongs to the given course, verifying the whole chain.
+     *
+     * @param centerId  the center identifier, must not be null
+     * @param courseId  the course identifier, must not be null
+     * @param subjectId the subject identifier, must not be null
+     * @return the existing subject
+     */
+    public Subject requireSubject(CenterId centerId, CourseId courseId, SubjectId subjectId) {
+        requireCourse(centerId, courseId);
+        Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new SubjectNotFoundException(subjectId));
+        if (!subject.courseId().equals(courseId)) {
+            throw new SubjectNotFoundException(subjectId);
+        }
+        return subject;
     }
 
     /**

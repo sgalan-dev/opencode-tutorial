@@ -9,3 +9,7 @@ databaseChangeLog:
       file: db/changelog/004-create-professor.yaml
   - include:
       file: db/changelog/005-seed-professors.yaml
+  - include:
+      file: db/changelog/006-create-subjects.yaml
+  - include:
+      file: db/changelog/007-seed-subjects.yaml
