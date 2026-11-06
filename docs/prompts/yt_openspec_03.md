@@ -29,7 +29,7 @@ A continuación pongo ejemplos de esta jerarquía de urls en base a su entidad:
 
 |URL|descripción|
 |-|-|
-|/api/v1/centers/{centerId}/courses/{courseId}/subjects/|url base para grupos|
+|/api/v1/centers/{centerId}/courses/{courseId}/subjects/|url base para asignaturas|
 
 ## Objetivo
 Implementar los diferentes controladores y endpoints en la aplicación para resolver esa necesidad funcional al completo.

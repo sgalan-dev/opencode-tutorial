@@ -1,33 +1,35 @@
 package com.example.opencodetutorial.application.usecase.impl;
 
 import com.example.opencodetutorial.application.usecase.GetStudentUseCase;
-import com.example.opencodetutorial.domain.exception.StudentNotFoundException;
+import com.example.opencodetutorial.domain.model.CenterId;
 import com.example.opencodetutorial.domain.model.Student;
 import com.example.opencodetutorial.domain.model.StudentId;
-import com.example.opencodetutorial.domain.port.StudentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Default {@link GetStudentUseCase} implementation. Surfaces a missing student
- * as a domain exception so the REST layer can map it to HTTP 404.
+ * Default {@link GetStudentUseCase} implementation. A student that belongs to another
+ * center is reported as not found, because it is not reachable under this URL.
+ *
+ * <p>Not final: Spring proxies the class to apply {@code @Transactional}.
  */
 @Service
-public final class GetStudentService implements GetStudentUseCase {
+public class GetStudentService implements GetStudentUseCase {
 
-    private final StudentRepository studentRepository;
+    private final HierarchyQueries hierarchy;
 
     /**
      * Builds the service with its required collaborator.
      *
-     * @param studentRepository the student repository, must not be null
+     * @param hierarchy used to validate the center and load the student
      */
-    public GetStudentService(StudentRepository studentRepository) {
-        this.studentRepository = studentRepository;
+    public GetStudentService(HierarchyQueries hierarchy) {
+        this.hierarchy = hierarchy;
     }
 
     @Override
-    public Student execute(StudentId id) {
-        return studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
+    @Transactional(readOnly = true)
+    public Student execute(CenterId centerId, StudentId studentId) {
+        return hierarchy.requireStudent(centerId, studentId);
     }
 }

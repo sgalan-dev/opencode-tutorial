@@ -1,5 +1,6 @@
 package com.example.opencodetutorial.domain.port;
 
+import com.example.opencodetutorial.domain.model.CenterId;
 import com.example.opencodetutorial.domain.model.Student;
 import com.example.opencodetutorial.domain.model.StudentId;
 
@@ -39,6 +40,14 @@ public interface StudentRepository {
      * @return the list of students, never null
      */
     List<Student> findAll();
+
+    /**
+     * Lists the students that belong to the given center.
+     *
+     * @param centerId the owning center identifier, must not be null
+     * @return the students of that center, never null (empty when it has none)
+     */
+    List<Student> findByCenterId(CenterId centerId);
 
     /**
      * Removes the student with the given identifier. No-op if the identifier is unknown.

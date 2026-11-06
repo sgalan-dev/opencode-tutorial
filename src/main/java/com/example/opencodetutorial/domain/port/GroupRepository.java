@@ -1,7 +1,9 @@
 package com.example.opencodetutorial.domain.port;
 
+import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
+import com.example.opencodetutorial.domain.model.ProfessorId;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,12 +42,31 @@ public interface GroupRepository {
     List<Group> findAll();
 
     /**
+     * Lists the groups that belong to the given course.
+     *
+     * @param courseId the owning course identifier, must not be null
+     * @return the groups of that course, never null (empty when it has none)
+     */
+    List<Group> findByCourseId(CourseId courseId);
+
+    /**
+     * Lists the groups tutored by the given professor.
+     *
+     * <p>This is the inverse of the tutor reference and it is NOT exposed through the
+     * API: it exists only as the guard that refuses deleting a professor who still
+     * tutors at least one group.
+     *
+     * @param professorId the tutor identifier, must not be null
+     * @return the groups tutored by that professor, never null (empty when it has none)
+     */
+    List<Group> findByTutorProfessorId(ProfessorId professorId);
+
+    /**
      * Removes the group with the given identifier. No-op if the identifier is unknown.
      *
      * @param id the group identifier, must not be null
      */
     void deleteById(GroupId id);
-
     /**
      * Checks whether a group with the given identifier exists.
      *

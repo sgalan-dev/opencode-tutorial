@@ -14,7 +14,7 @@ public record GroupRequest(
 
         @Schema(
                 description = "Display name of the group.",
-                example = "Programación 1",
+                example = "Grupo A",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = 150)
         @NotBlank @Size(max = 150) String name) {

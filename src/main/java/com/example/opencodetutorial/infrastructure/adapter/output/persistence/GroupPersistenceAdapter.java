@@ -1,8 +1,10 @@
 package com.example.opencodetutorial.infrastructure.adapter.output.persistence;
 
+import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
 import com.example.opencodetutorial.domain.model.GroupName;
+import com.example.opencodetutorial.domain.model.ProfessorId;
 import com.example.opencodetutorial.domain.port.GroupRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,22 @@ public class GroupPersistenceAdapter implements GroupRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Group> findByCourseId(CourseId courseId) {
+        return repository.findByCourseId(courseId.value()).stream()
+                .map(GroupPersistenceAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Group> findByTutorProfessorId(ProfessorId professorId) {
+        return repository.findByTutorProfessorId(professorId.value()).stream()
+                .map(GroupPersistenceAdapter::toDomain)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void deleteById(GroupId id) {
         repository.deleteById(id.value());
@@ -68,6 +86,8 @@ public class GroupPersistenceAdapter implements GroupRepository {
         if (group.id() != null) {
             entity.setId(group.id().value());
         }
+        entity.setCourseId(group.courseId().value());
+        entity.setTutorProfessorId(group.tutorProfessorId() == null ? null : group.tutorProfessorId().value());
         entity.setName(group.name().value());
         entity.setCreatedAt(group.createdAt());
         entity.setUpdatedAt(group.updatedAt());
@@ -78,6 +98,8 @@ public class GroupPersistenceAdapter implements GroupRepository {
         return Group.rehydrate(
                 new GroupId(entity.getId()),
                 new GroupName(entity.getName()),
+                new CourseId(entity.getCourseId()),
+                entity.getTutorProfessorId() == null ? null : new ProfessorId(entity.getTutorProfessorId()),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

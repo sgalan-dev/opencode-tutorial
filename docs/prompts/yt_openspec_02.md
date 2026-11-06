@@ -13,7 +13,7 @@ Los profesores, pertenecen a un centro.
 
 Una misma persona puede ser profesor en más de un centro. La persona no cambia, pero el profesor en sí será distinto.
 
-No puede haber un profesor asociado a la misma persona dentro del mismo centro.
+No puede haber más de un profesor asociado a la misma persona dentro del mismo centro.
 
 También necesitamos poder asignar tutores o responsables de un grupo (que serán profesores del centro). 
 

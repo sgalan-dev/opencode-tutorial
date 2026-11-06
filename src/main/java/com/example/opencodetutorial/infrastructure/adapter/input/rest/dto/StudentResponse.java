@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
  * Response payload for student-related endpoints.
  *
  * @param id       the student's identifier
+ * @param centerId the center the student belongs to
  * @param personId the associated person's identifier
  * @param groupIds the identifiers of the groups the student is enrolled in
  */
@@ -21,6 +22,9 @@ public record StudentResponse(
                 example = "1",
                 accessMode = Schema.AccessMode.READ_ONLY)
         Long id,
+
+        @Schema(description = "Identifier of the center the student belongs to.", example = "1")
+        Long centerId,
 
         @Schema(description = "Identifier of the person the student is associated with.",
                 example = "1")
@@ -40,6 +44,10 @@ public record StudentResponse(
         Set<Long> groupIds = student.groupIds().stream()
                 .map(GroupId::value)
                 .collect(Collectors.toUnmodifiableSet());
-        return new StudentResponse(student.id().value(), student.personId().value(), groupIds);
+        return new StudentResponse(
+                student.id().value(),
+                student.centerId().value(),
+                student.personId().value(),
+                groupIds);
     }
 }

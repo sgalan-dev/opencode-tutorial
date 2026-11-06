@@ -9,13 +9,17 @@ import com.example.opencodetutorial.domain.model.Student;
 public interface UpdateStudentUseCase {
 
     /**
-     * Replaces the given student with the values from the command (person
-     * association and group memberships).
+     * Replaces the student with the values from the command: person association, the
+     * full set of enrolments and, optionally, the center it belongs to.
      *
      * @param command the update payload, must not be null
      * @return the updated student (with refreshed timestamps)
      * @throws com.example.opencodetutorial.domain.exception.StudentNotFoundException
-     *         if no student exists with the supplied identifier
+     *         if no student exists with the supplied identifier under that center
+     * @throws com.example.opencodetutorial.domain.exception.PersonNotFoundException
+     *         if no person exists with the supplied identifier
+     * @throws com.example.opencodetutorial.domain.exception.GroupNotFoundException
+     *         if one of the supplied groups does not exist or belongs to another center
      */
     Student execute(UpdateStudentCommand command);
 }

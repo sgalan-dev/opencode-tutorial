@@ -1,18 +1,31 @@
 package com.example.opencodetutorial.infrastructure.adapter.input.rest;
 
+import com.example.opencodetutorial.application.usecase.AssignTutorToGroupUseCase;
 import com.example.opencodetutorial.application.usecase.CreateGroupUseCase;
 import com.example.opencodetutorial.application.usecase.DeleteGroupUseCase;
+import com.example.opencodetutorial.application.usecase.DetachStudentFromGroupUseCase;
+import com.example.opencodetutorial.application.usecase.EnrollStudentInGroupUseCase;
+import com.example.opencodetutorial.application.usecase.GetGroupDetailUseCase;
 import com.example.opencodetutorial.application.usecase.GetGroupUseCase;
 import com.example.opencodetutorial.application.usecase.ListGroupsUseCase;
+import com.example.opencodetutorial.application.usecase.ListStudentsInGroupUseCase;
+import com.example.opencodetutorial.application.usecase.UnassignTutorFromGroupUseCase;
 import com.example.opencodetutorial.application.usecase.UpdateGroupUseCase;
+import com.example.opencodetutorial.domain.model.CenterId;
+import com.example.opencodetutorial.domain.model.CourseId;
 import com.example.opencodetutorial.domain.model.Group;
 import com.example.opencodetutorial.domain.model.GroupId;
+import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupDetailResponse;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupRequest;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupResponse;
+import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.StudentResponse;
 import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.GroupRequestMapper;
+import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.ProfessorRequestMapper;
+import com.example.opencodetutorial.infrastructure.adapter.input.rest.mapper.StudentRequestMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -36,11 +49,16 @@ import java.net.URI;
 import java.util.List;
 
 /**
- * REST adapter for {@link com.example.opencodetutorial.domain.model.Group}.
+ * REST adapter for {@link com.example.opencodetutorial.domain.model.Group}, nested under
+ * the course that owns it. It also hosts the enrolment and detachment of students, which
+ * used to live under {@code /api/v1/students/{studentId}/groups/{groupId}} and are now
+ * expressed as {@code .../groups/{groupId}/students/{studentId}}, and the assignment of
+ * the tutor of the group.
  */
 @RestController
-@RequestMapping("/api/v1/groups")
-@Tag(name = "Groups", description = "Operations over the Group aggregate. Persisted to the `student_group` table.")
+@RequestMapping("/api/v1/centers/{centerId}/courses/{courseId}/groups")
+@Tag(name = "Groups", description = "Operations over the Group aggregate, its student enrolments and its tutor. "
+        + "Persisted to the `student_group` table.")
 public class GroupController {
 
     private final CreateGroupUseCase createGroupUseCase;
@@ -48,6 +66,12 @@ public class GroupController {
     private final GetGroupUseCase getGroupUseCase;
     private final UpdateGroupUseCase updateGroupUseCase;
     private final DeleteGroupUseCase deleteGroupUseCase;
+    private final ListStudentsInGroupUseCase listStudentsInGroupUseCase;
+    private final GetGroupDetailUseCase getGroupDetailUseCase;
+    private final EnrollStudentInGroupUseCase enrollStudentInGroupUseCase;
+    private final DetachStudentFromGroupUseCase detachStudentFromGroupUseCase;
+    private final AssignTutorToGroupUseCase assignTutorToGroupUseCase;
+    private final UnassignTutorFromGroupUseCase unassignTutorFromGroupUseCase;
 
     /**
      * Builds the controller with its required collaborators.
@@ -56,26 +80,46 @@ public class GroupController {
                            ListGroupsUseCase listGroupsUseCase,
                            GetGroupUseCase getGroupUseCase,
                            UpdateGroupUseCase updateGroupUseCase,
-                           DeleteGroupUseCase deleteGroupUseCase) {
+                           DeleteGroupUseCase deleteGroupUseCase,
+                           ListStudentsInGroupUseCase listStudentsInGroupUseCase,
+                           GetGroupDetailUseCase getGroupDetailUseCase,
+                           EnrollStudentInGroupUseCase enrollStudentInGroupUseCase,
+                           DetachStudentFromGroupUseCase detachStudentFromGroupUseCase,
+                           AssignTutorToGroupUseCase assignTutorToGroupUseCase,
+                           UnassignTutorFromGroupUseCase unassignTutorFromGroupUseCase) {
         this.createGroupUseCase = createGroupUseCase;
         this.listGroupsUseCase = listGroupsUseCase;
         this.getGroupUseCase = getGroupUseCase;
         this.updateGroupUseCase = updateGroupUseCase;
         this.deleteGroupUseCase = deleteGroupUseCase;
+        this.listStudentsInGroupUseCase = listStudentsInGroupUseCase;
+        this.getGroupDetailUseCase = getGroupDetailUseCase;
+        this.enrollStudentInGroupUseCase = enrollStudentInGroupUseCase;
+        this.detachStudentFromGroupUseCase = detachStudentFromGroupUseCase;
+        this.assignTutorToGroupUseCase = assignTutorToGroupUseCase;
+        this.unassignTutorFromGroupUseCase = unassignTutorFromGroupUseCase;
     }
 
     /**
-     * Lists every group.
+     * Lists every group of a course.
      */
     @Operation(
-            summary = "List all groups",
-            description = "Returns every persisted group, in no particular order.")
-    @ApiResponse(responseCode = "200", description = "List of groups (possibly empty).",
-            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = GroupResponse.class)))
+            summary = "List the groups of a course",
+            description = "Returns every group belonging to the course, in no particular order.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of groups (possibly empty).",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = GroupResponse.class)))),
+            @ApiResponse(responseCode = "404", description = "No such center, or the course does not belong to it.",
+                    content = @Content)})
     @GetMapping
-    public ResponseEntity<List<GroupResponse>> list() {
-        List<GroupResponse> body = listGroupsUseCase.execute().stream()
+    public ResponseEntity<List<GroupResponse>> list(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId) {
+        List<GroupResponse> body = listGroupsUseCase
+                .execute(new CenterId(centerId), new CourseId(courseId)).stream()
                 .map(GroupResponse::from)
                 .toList();
         return ResponseEntity.ok(body);
@@ -86,27 +130,33 @@ public class GroupController {
      */
     @Operation(
             summary = "Get a group by id",
-            description = "Returns the group with the given identifier, or 404 if it does not exist.")
+            description = "Returns the group with the given identifier when the course owns it, or 404 otherwise.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Group found.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = GroupResponse.class))),
-            @ApiResponse(responseCode = "404", description = "No group exists with the supplied identifier.",
+            @ApiResponse(responseCode = "404", description = "No such center/course, or the group does not belong to it.",
                     content = @Content)})
-    @GetMapping("/{id}")
+    @GetMapping("/{groupId}")
     public ResponseEntity<GroupResponse> get(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
             @Parameter(description = "Identifier of the group to retrieve.", example = "1", required = true)
-            @PathVariable Long id) {
-        Group group = getGroupUseCase.execute(new GroupId(id));
+            @PathVariable Long groupId) {
+        Group group = getGroupUseCase.execute(
+                new CenterId(centerId), new CourseId(courseId), new GroupId(groupId));
         return ResponseEntity.ok(GroupResponse.from(group));
     }
 
     /**
-     * Creates a new group.
+     * Creates a new group inside a course.
      */
     @Operation(
             summary = "Create a new group",
-            description = "Persists a new group and returns its identifier in the `Location` header.")
+            description = "Persists a new group under the given course and returns its identifier in the "
+                    + "`Location` header. The name must be unique inside that course.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Group created. The `Location` header points at the new resource.",
                     headers = @Header(name = HttpHeaders.LOCATION, description = "URI of the newly created group.",
@@ -114,20 +164,29 @@ public class GroupController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = GroupResponse.class))),
             @ApiResponse(responseCode = "400", description = "One or more fields are invalid.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "No such center, or the course does not belong to it.",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "The course already has a group with that name.",
                     content = @Content)})
     @PostMapping
     public ResponseEntity<GroupResponse> create(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
             @RequestBody(description = "Group to create. `name` is required and non-blank.",
                     required = true,
                     content = @Content(schema = @Schema(implementation = GroupRequest.class)))
             @Valid @org.springframework.web.bind.annotation.RequestBody GroupRequest request) {
-        GroupId createdId = createGroupUseCase.execute(GroupRequestMapper.toCreateCommand(request));
+        GroupId createdId = createGroupUseCase.execute(
+                GroupRequestMapper.toCreateCommand(centerId, courseId, request));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(createdId.value())
                 .toUri();
         return ResponseEntity.created(location)
-                .body(new GroupResponse(createdId.value(), request.name()));
+                .body(new GroupResponse(createdId.value(), courseId, request.name(), null));
     }
 
     /**
@@ -135,42 +194,230 @@ public class GroupController {
      */
     @Operation(
             summary = "Replace a group",
-            description = "Replaces the group with the given identifier with the values from the request body.")
+            description = "Replaces the name of the group with the given identifier, keeping it under the "
+                    + "same course.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Group updated.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = GroupResponse.class))),
             @ApiResponse(responseCode = "400", description = "One or more fields are invalid.",
                     content = @Content),
-            @ApiResponse(responseCode = "404", description = "No group exists with the supplied identifier.",
+            @ApiResponse(responseCode = "404", description = "No such center/course, or the group does not belong to it.",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "The course already has a group with that name.",
                     content = @Content)})
-    @PutMapping("/{id}")
+    @PutMapping("/{groupId}")
     public ResponseEntity<GroupResponse> update(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
             @Parameter(description = "Identifier of the group to replace.", example = "1", required = true)
-            @PathVariable Long id,
+            @PathVariable Long groupId,
             @RequestBody(description = "Replacement payload for the group.",
                     required = true,
                     content = @Content(schema = @Schema(implementation = GroupRequest.class)))
             @Valid @org.springframework.web.bind.annotation.RequestBody GroupRequest request) {
-        Group updated = updateGroupUseCase.execute(GroupRequestMapper.toUpdateCommand(id, request));
+        Group updated = updateGroupUseCase.execute(
+                GroupRequestMapper.toUpdateCommand(centerId, courseId, groupId, request));
         return ResponseEntity.ok(GroupResponse.from(updated));
     }
 
     /**
-     * Removes the group with the given identifier.
+     * Removes the group with the given identifier and all its enrolments.
      */
     @Operation(
             summary = "Delete a group",
-            description = "Removes the group with the given identifier. Returns 404 if it does not exist.")
+            description = "Removes the group with the given identifier together with every student enrolment "
+                    + "that targeted it.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Group deleted. No content.", content = @Content),
-            @ApiResponse(responseCode = "404", description = "No group exists with the supplied identifier.",
+            @ApiResponse(responseCode = "404", description = "No such center/course, or the group does not belong to it.",
                     content = @Content)})
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> delete(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
             @Parameter(description = "Identifier of the group to delete.", example = "1", required = true)
-            @PathVariable Long id) {
-        deleteGroupUseCase.execute(new GroupId(id));
+            @PathVariable Long groupId) {
+        deleteGroupUseCase.execute(new CenterId(centerId), new CourseId(courseId), new GroupId(groupId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lists the students enrolled in a group.
+     */
+    @Operation(
+            summary = "List the students of a group",
+            description = "Returns every student currently enrolled in the group, in no particular order.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of students (possibly empty).",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = StudentResponse.class)))),
+            @ApiResponse(responseCode = "404", description = "No such center/course, or the group does not belong to it.",
+                    content = @Content)})
+    @GetMapping("/{groupId}/students")
+    public ResponseEntity<List<StudentResponse>> listStudents(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group.", example = "1", required = true)
+            @PathVariable Long groupId) {
+        List<StudentResponse> body = listStudentsInGroupUseCase
+                .execute(new CenterId(centerId), new CourseId(courseId), new GroupId(groupId)).stream()
+                .map(StudentResponse::from)
+                .toList();
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * Retrieves the assembled detail of a group.
+     */
+    @Operation(
+            summary = "Get the detail of a group",
+            description = "Returns the group, the course it belongs to and every enrolled student with the "
+                    + "personal data of the associated person.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Assembled group detail.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = GroupDetailResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No such center/course, or the group does not belong to it.",
+                    content = @Content)})
+    @GetMapping("/{groupId}/students/detail")
+    public ResponseEntity<GroupDetailResponse> detail(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group.", example = "1", required = true)
+            @PathVariable Long groupId) {
+        GroupDetailResponse body = GroupDetailResponse.from(
+                getGroupDetailUseCase.execute(new CenterId(centerId), new CourseId(courseId), new GroupId(groupId)));
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * Enrols the given student in the given group.
+     */
+    @Operation(
+            summary = "Enrol a student in a group",
+            description = "Adds the group to the student's enrolment set. Idempotent: enrolling a student that "
+                    + "is already in the group is a no-op. A student can hold at most one group per course, so "
+                    + "enrolling them in a second group of the same course is rejected with 409.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Enrolment applied (or already present). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the student does not belong to the center in the URL.",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "The student is already enrolled in another group "
+                    + "of the same course.",
+                    content = @Content)})
+    @PostMapping("/{groupId}/students/{studentId}")
+    public ResponseEntity<Void> enroll(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to enrol the student in.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the student to enrol.", example = "1", required = true)
+            @PathVariable Long studentId) {
+        enrollStudentInGroupUseCase.execute(StudentRequestMapper.toEnrollCommand(
+                centerId, courseId, groupId, studentId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Removes the given student from the given group.
+     */
+    @Operation(
+            summary = "Remove a student from a group",
+            description = "Removes the group from the student's enrolment set. Idempotent: removing a student "
+                    + "that is not in the group is a no-op.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Detachment applied (or already absent). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the student does not belong to the center in the URL.",
+                    content = @Content)})
+    @DeleteMapping("/{groupId}/students/{studentId}")
+    public ResponseEntity<Void> detach(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to remove the student from.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the student to remove.", example = "1", required = true)
+            @PathVariable Long studentId) {
+        detachStudentFromGroupUseCase.execute(StudentRequestMapper.toDetachCommand(
+                centerId, courseId, groupId, studentId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Assigns the given professor as the tutor of the given group.
+     */
+    @Operation(
+            summary = "Assign a tutor to a group",
+            description = "Makes the given professor the tutor of the group, replacing the tutor it had, if any. "
+                    + "The tutor must be a professor of the center that owns the group's course. Idempotent: "
+                    + "assigning the tutor the group already has is a no-op. The `PUT` of the group never touches "
+                    + "the tutor.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Tutor assigned (or already present). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the professor does not belong to the center in the URL.",
+                    content = @Content),
+            @ApiResponse(responseCode = "409", description = "The professor belongs to another center than the "
+                    + "one that owns the group's course.",
+                    content = @Content)})
+    @PostMapping("/{groupId}/tutor/{professorId}")
+    public ResponseEntity<Void> assignTutor(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to assign the tutor to.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the professor that becomes the tutor.", example = "1", required = true)
+            @PathVariable Long professorId) {
+        assignTutorToGroupUseCase.execute(ProfessorRequestMapper.toAssignTutorCommand(
+                centerId, courseId, groupId, professorId));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Removes the tutor of the given group.
+     */
+    @Operation(
+            summary = "Remove the tutor from a group",
+            description = "Removes the tutor of the group. Idempotent: removing a tutor that is not the current "
+                    + "one is a no-op.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Tutor removed (or already absent). No content.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Any element of the hierarchy does not exist, "
+                    + "or the professor does not belong to the center in the URL.",
+                    content = @Content)})
+    @DeleteMapping("/{groupId}/tutor/{professorId}")
+    public ResponseEntity<Void> unassignTutor(
+            @Parameter(description = "Identifier of the owning center.", example = "1", required = true)
+            @PathVariable Long centerId,
+            @Parameter(description = "Identifier of the owning course.", example = "1", required = true)
+            @PathVariable Long courseId,
+            @Parameter(description = "Identifier of the group to remove the tutor from.", example = "1", required = true)
+            @PathVariable Long groupId,
+            @Parameter(description = "Identifier of the professor that is expected to be the tutor.",
+                    example = "1", required = true)
+            @PathVariable Long professorId) {
+        unassignTutorFromGroupUseCase.execute(ProfessorRequestMapper.toUnassignTutorCommand(
+                centerId, courseId, groupId, professorId));
         return ResponseEntity.noContent().build();
     }
 }

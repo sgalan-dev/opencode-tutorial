@@ -1,0 +1,86 @@
+databaseChangeLog:
+  # Demo data for the Professor aggregate and the group tutor.
+  #
+  # Identifiers are not forced on the inserted rows: H2 does not advance an identity
+  # sequence when a value is inserted explicitly, so forcing ids would make the next
+  # application-generated id collide with the seeded ones. Instead the rows are
+  # inserted in a fixed order on a brand new table (professor) or on top of a
+  # sequence that is already positioned where the seed needs it (center, person),
+  # and every reference is written with the resulting identifier explicitly.
+  #
+  # The three cases that have to be visible are covered:
+  #   - a professor of two centers at once (person 4)
+  #   - a group with a tutor (groups 1 and 3)
+  #   - a group without a tutor (group 2)
+
+  - changeSet:
+      id: 110-seed-center-2
+      author: opencode-tutorial
+      # Second center: the next id after the one seeded in 002-seed-data.yaml.
+      changes:
+        - insert:
+            tableName: center
+            columns:
+              - column: { name: name, value: "IES Segundo centro" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 111-seed-professors
+      author: opencode-tutorial
+      # Katherine Johnson joins the cast as person 5; she becomes a professor of
+      # center 1.
+      changes:
+        - insert:
+            tableName: person
+            columns:
+              - column: { name: name,    value: "Katherine" }
+              - column: { name: surname, value: "Johnson" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+        # Professor 1: Alan Turing (person 4) at center 1.
+        - insert:
+            tableName: professor
+            columns:
+              - column: { name: person_id, valueNumeric: 4 }
+              - column: { name: center_id, valueNumeric: 1 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+        # Professor 2: the very same person (Alan Turing) at center 2. One person,
+        # two independent professorships.
+        - insert:
+            tableName: professor
+            columns:
+              - column: { name: person_id, valueNumeric: 4 }
+              - column: { name: center_id, valueNumeric: 2 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+        # Professor 3: Katherine Johnson (person 5) at center 1.
+        - insert:
+            tableName: professor
+            columns:
+              - column: { name: person_id, valueNumeric: 5 }
+              - column: { name: center_id, valueNumeric: 1 }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+              - column: { name: updated_at, valueComputed: "CURRENT_TIMESTAMP" }
+
+  - changeSet:
+      id: 112-assign-group-tutors
+      author: opencode-tutorial
+      # Grupo A (id 1) is tutored by professor 1 and Grupo C (id 3) by professor 3.
+      # Grupo B (id 2) keeps a NULL tutor: the column stays nullable and the group
+      # detail reports the tutor as absent.
+      changes:
+        - update:
+            tableName: student_group
+            columns:
+              - column: { name: tutor_professor_id, valueNumeric: 1 }
+            where: "id = 1"
+        - update:
+            tableName: student_group
+            columns:
+              - column: { name: tutor_professor_id, valueNumeric: 3 }
+            where: "id = 3"

@@ -5,3 +5,11 @@ databaseChangeLog:
       file: db/changelog/002-seed-data.yaml
   - include:
       file: db/changelog/003-add-person-surname2.yaml
+  - include:
+      file: db/changelog/004-create-professor.yaml
+  - include:
+      file: db/changelog/005-seed-professors.yaml
+  - include:
+      file: db/changelog/006-create-subjects.yaml
+  - include:
+      file: db/changelog/007-seed-subjects.yaml

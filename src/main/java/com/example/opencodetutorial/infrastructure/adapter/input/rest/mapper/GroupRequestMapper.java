@@ -6,6 +6,7 @@ import com.example.opencodetutorial.infrastructure.adapter.input.rest.dto.GroupR
 
 /**
  * Translates {@link GroupRequest} payloads into framework-free application commands.
+ * The parent center and course always come from the canonical URL.
  */
 public final class GroupRequestMapper {
 
@@ -14,23 +15,28 @@ public final class GroupRequestMapper {
     }
 
     /**
-     * Builds a {@link CreateGroupCommand} from a request payload.
+     * Builds a {@link CreateGroupCommand} from the URL chain and a request payload.
      *
-     * @param request the request payload, must not be null
+     * @param centerId the parent center taken from the URL
+     * @param courseId the parent course taken from the URL
+     * @param request  the request payload, must not be null
      * @return the create command
      */
-    public static CreateGroupCommand toCreateCommand(GroupRequest request) {
-        return new CreateGroupCommand(request.name());
+    public static CreateGroupCommand toCreateCommand(Long centerId, Long courseId, GroupRequest request) {
+        return new CreateGroupCommand(centerId, courseId, request.name());
     }
 
     /**
-     * Builds an {@link UpdateGroupCommand} from an identifier and a request payload.
+     * Builds an {@link UpdateGroupCommand} from the URL chain and a request payload.
      *
-     * @param id      the target group identifier
-     * @param request the request payload, must not be null
+     * @param centerId the parent center taken from the URL
+     * @param courseId the parent course taken from the URL
+     * @param groupId  the target group taken from the URL
+     * @param request  the request payload, must not be null
      * @return the update command
      */
-    public static UpdateGroupCommand toUpdateCommand(Long id, GroupRequest request) {
-        return new UpdateGroupCommand(id, request.name());
+    public static UpdateGroupCommand toUpdateCommand(Long centerId, Long courseId, Long groupId,
+                                                    GroupRequest request) {
+        return new UpdateGroupCommand(centerId, courseId, groupId, request.name());
     }
 }
